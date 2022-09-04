@@ -1,0 +1,35 @@
+{
+  "name": "horror-server",
+  "main": "./build/SocketTypes.js",
+  "module": "./build/SocketTypes.js",
+  "types": "./build/SocketTypes.d.ts",
+  "files": [
+    "build",
+    "branchBuild.js"
+  ],
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dynamojs-engine": "^1.1.0",
+    "express": "^4.18.1",
+    "nodemon": "^2.0.19",
+    "socket.io": "^4.5.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.2"
+  },
+  "scripts": {
+    "lint": "prettier --write src/* && eslint --fix src",
+    "build": "tsc",
+    "debug": "nodemon src/index.ts",
+    "start": "tsc && nodemon build/index.js",
+    "postinstall": "node branchBuild.js"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@typescript-eslint/eslint-plugin": "^5.36.1",
+    "eslint": "^8.23.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.7.1"
+  }
+}
