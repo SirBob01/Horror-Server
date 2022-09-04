@@ -1,6 +1,6 @@
 import { Color } from 'dynamojs-engine';
 import { Socket } from 'socket.io';
-import { EmitEvents, ListenEvents } from '../SocketTypes';
+import { ServerToClientEvents, ClientToServerEvents } from '../SocketTypes';
 import { ShipTypes } from './Entities';
 import { Game } from './Game';
 
@@ -99,7 +99,7 @@ function randomName() {
  * Represents a player in the game
  */
 class Player {
-  socket: Socket<ListenEvents, EmitEvents>;
+  socket: Socket<ClientToServerEvents, ServerToClientEvents>;
 
   game: Game | null;
 
@@ -109,7 +109,7 @@ class Player {
 
   resources: number;
 
-  constructor(socket: Socket<ListenEvents, EmitEvents>) {
+  constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
     this.socket = socket;
     this.game = null;
 

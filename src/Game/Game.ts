@@ -1,6 +1,6 @@
 import { Vec2D } from 'dynamojs-engine';
 import { Socket } from 'socket.io';
-import { EmitEvents, ListenEvents } from '../SocketTypes';
+import { ServerToClientEvents, ClientToServerEvents } from '../SocketTypes';
 import { Entity, Ship } from './Entities';
 import { Player, SpriteSet } from './Player';
 
@@ -62,7 +62,7 @@ class Game {
   key: string;
 
   // Host player socket
-  host: Socket<ListenEvents, EmitEvents>;
+  host: Socket<ClientToServerEvents, ServerToClientEvents>;
 
   // List of players in this game
   players: Player[];

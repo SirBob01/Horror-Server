@@ -2,7 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import http from 'http';
 import { Game, Player } from './Game';
 import { DefaultEventsMap } from 'socket.io/dist/typed-events';
-import { ListenEvents, EmitEvents } from './SocketTypes';
+import { ClientToServerEvents, ServerToClientEvents } from './SocketTypes';
 
 /**
  * Generate a random string of a certain length
@@ -24,7 +24,7 @@ const generateRandomString = (length: number) => {
  * Server instance that coordinates the simulation of multiple concurrent games
  */
 class Server {
-  private io: SocketServer<ListenEvents, EmitEvents, DefaultEventsMap>;
+  private io: SocketServer<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap>;
 
   private players: Map<string, Player>;
 

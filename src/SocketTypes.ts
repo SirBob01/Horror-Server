@@ -14,7 +14,7 @@ import {
 /**
  * Client-to-server events
  */
-interface ListenEvents {
+interface ClientToServerEvents {
   /**
    * Create a new lobby
    */
@@ -64,7 +64,7 @@ interface ListenEvents {
 /**
  * Server-to-client events
  */
-interface EmitEvents {
+interface ServerToClientEvents {
   /**
    * Emit lobby information to the players
    */
@@ -87,8 +87,8 @@ interface EmitEvents {
 }
 
 export type {
-  ListenEvents,
-  EmitEvents,
+  ClientToServerEvents,
+  ServerToClientEvents,
   KeyInputData,
   MouseInputData,
   PixelData,
