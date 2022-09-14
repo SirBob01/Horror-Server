@@ -1,7 +1,5 @@
-import { Color } from 'dynamojs-engine';
 import { Socket } from 'socket.io';
 import { ServerToClientEvents, ClientToServerEvents } from '../SocketTypes';
-import { ShipTypes } from './Entities';
 import { Game } from './Game';
 
 /**
@@ -37,33 +35,11 @@ interface MouseInputData {
 }
 
 /**
- * Defines the pixel data received
- */
-interface PixelData {
-  /**
-   * Total number of pixels = size * size
-   */
-  size: number;
-
-  /**
-   * Array of colors corresponding to the individual pixels
-   */
-  colors: Color[];
-}
-
-/**
- * Defines the sprite set of a player
- */
-type SpriteSet = {
-  [T in keyof ShipTypes]: PixelData;
-};
-
-/**
  * Generate a random name from the name word bank
  *
  * @returns new name
  */
-function randomName() {
+function generate_random_name() {
   const names = [
     'Dynamo',
     'Iron',
@@ -105,29 +81,13 @@ class Player {
 
   name: string;
 
-  sprites: SpriteSet;
-
   resources: number;
 
   constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
     this.socket = socket;
     this.game = null;
 
-    this.name = randomName();
-    this.sprites = {
-      scout: {
-        size: 0,
-        colors: [],
-      },
-      fighter: {
-        size: 0,
-        colors: [],
-      },
-      carrier: {
-        size: 0,
-        colors: [],
-      },
-    };
+    this.name = generate_random_name();
     this.resources = 0;
   }
 
@@ -136,14 +96,14 @@ class Player {
    *
    * @param mousedata
    */
-  public handleMouse(mousedata: MouseInputData) {}
+  public handle_mouse(mousedata: MouseInputData) {}
 
   /**
    * Handle keyboard input
    * @param keydata
    */
-  public handleKeys(keydata: KeyInputData) {}
+  public handle_keys(keydata: KeyInputData) {}
 }
 
 export { Player };
-export type { KeyInputData, MouseInputData, PixelData, SpriteSet };
+export type { KeyInputData, MouseInputData };

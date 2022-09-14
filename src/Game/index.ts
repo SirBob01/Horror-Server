@@ -10,6 +10,4 @@ export type {
 export type {
   KeyInputData,
   MouseInputData,
-  PixelData,
-  SpriteSet,
 } from './Player';

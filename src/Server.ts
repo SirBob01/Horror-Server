@@ -10,7 +10,7 @@ import { ClientToServerEvents, ServerToClientEvents } from './SocketTypes';
  * @param length Length of the random string
  * @returns
  */
-const generateRandomString = (length: number) => {
+const generate_random_string = (length: number) => {
   const alphabet =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let string = '';
@@ -20,9 +20,6 @@ const generateRandomString = (length: number) => {
   return string;
 };
 
-/**
- * Server instance that coordinates the simulation of multiple concurrent games
- */
 class Server {
   private io: SocketServer<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap>;
 
@@ -30,6 +27,9 @@ class Server {
 
   private games: Map<string, Game>;
 
+  /**
+   * Server instance that coordinates the simulation of multiple concurrent games
+   */
   constructor(server: http.Server) {
     this.io = new SocketServer(server, {
       cors: {
@@ -47,9 +47,9 @@ class Server {
       // Create a new lobby
       socket.on('create', (callback) => {
         const keylen = 6;
-        let key = generateRandomString(keylen);
+        let key = generate_random_string(keylen);
         while (key in this.games) {
-          key = generateRandomString(keylen);
+          key = generate_random_string(keylen);
         }
         const game = new Game(key, player.socket);
         game.join(player);
@@ -81,18 +81,11 @@ class Server {
         player.game?.sendLobbyData();
       });
 
-      // Set player pixel data
-      socket.on('setPixelData', (data) => {
-        player.sprites.scout = data.scout;
-        player.sprites.fighter = data.fighter;
-        player.sprites.carrier = data.carrier;
-      });
-
       // Handle key input
-      socket.on('keystate', player.handleKeys);
+      socket.on('keystate', player.handle_keys);
 
       // Handle mouse input
-      socket.on('mousestate', player.handleMouse);
+      socket.on('mousestate', player.handle_mouse);
 
       // Kicking a player
       socket.on('kick', (id) => {
@@ -100,7 +93,7 @@ class Server {
         if (target && target.game) {
           const game = target.game;
           game.disconnect(id);
-          game.sendLobbyData();
+          game.send_lobby_data();
           target.socket.emit('kick');
         }
       });
@@ -110,7 +103,7 @@ class Server {
         if (player.game) {
           const game = player.game;
           game.disconnect(socket.id);
-          game.sendLobbyData();
+          game.send_lobby_data();
         }
         this.players.delete(socket.id);
       });
@@ -138,7 +131,7 @@ class Server {
       // A game can exist for up to 1 hour after everyone has left
       if (
         game.players.length === 0 &&
-        Date.now() - game.lastDisconnect > 1000 * 60 * 60
+        Date.now() - game.last_disconnect > 1000 * 60 * 60
       ) {
         this.games.delete(key);
       } else if (game.running) {

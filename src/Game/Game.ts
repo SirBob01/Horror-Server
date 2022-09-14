@@ -1,8 +1,7 @@
 import { Vec2D } from 'dynamojs-engine';
 import { Socket } from 'socket.io';
 import { ServerToClientEvents, ClientToServerEvents } from '../SocketTypes';
-import { Entity, Ship } from './Entities';
-import { Player, SpriteSet } from './Player';
+import { Player } from './Player';
 
 /**
  * Defines the necessary data for the client to store player information
@@ -28,7 +27,6 @@ interface LobbyData {
 interface StartData {
   key: string;
   mapSize: Vec2D;
-  pixelData: { [id: string]: SpriteSet };
 }
 
 /**
@@ -65,41 +63,32 @@ class Game {
   host: Socket<ClientToServerEvents, ServerToClientEvents>;
 
   // List of players in this game
-  players: Player[];
+  players: Map<string, Player>;
 
   // Is running?
   running: boolean;
 
   // Timestamp for last time a player disconnected
-  lastDisconnect: number;
-
-  // List of entities
-  entities: Entity[];
-
-  // Size of the map
-  mapSize: Vec2D;
+  last_disconnect: number;
 
   constructor(key: string, host: Socket) {
     this.key = key;
     this.host = host;
-    this.players = [];
+    this.players = new Map();
     this.running = false;
-    this.lastDisconnect = Date.now();
-    this.mapSize = new Vec2D(0, 0);
+    this.last_disconnect = Date.now();
 
-    this.entities = [];
-
-    this.handleHostInput();
+    this.handle_host_input();
   }
 
   /**
    * Handle host input
    */
-  public handleHostInput() {
+  public handle_host_input() {
     this.host.on('start', () => {
       if (!this.running) {
         this.generate();
-        this.sendStartData();
+        this.send_start_data();
         this.running = true;
       }
     });
@@ -113,8 +102,8 @@ class Game {
    *
    * @param player
    */
-  public join(player: Player) {
-    this.players.push(player);
+  public join(id: string, player: Player) {
+    this.players.set(id, player);
     player.game = this;
   }
 
@@ -200,16 +189,10 @@ class Game {
   /**
    * Send initial data to member players
    */
-  public sendStartData() {
-    const pixelData: { [id: string]: SpriteSet } = {};
-    for (const player of this.players) {
-      pixelData[player.socket.id] = player.sprites;
-    }
+  public send_start_data() {
     for (const player of this.players) {
       player.socket.emit('start', {
         key: this.key,
-        pixelData,
-        mapSize: this.mapSize,
       });
     }
   }
@@ -236,24 +219,7 @@ class Game {
    * @param delta (ms)
    */
   public update(delta: number) {
-    // Fetch the list of all entities and update them
-    for (const entity of this.entities) {
-      entity.update(delta);
-      entity.move(delta);
-    }
 
-    // Handle collisions and interactions
-    const n = this.entities.length;
-    for (let i = 0; i < n - 1; i++) {
-      for (let j = i + 1; j < n; j++) {
-        const a = this.entities[i];
-        const b = this.entities[j];
-        if (a.isColliding(b)) {
-          a.interact(b);
-          b.interact(a);
-        }
-      }
-    }
   }
 }
 
