@@ -8,7 +8,7 @@ import { Light } from '../World';
  * instantiated at once
  *
  * When a particle is marked as persistent, the renderer will "paint" it onto a particle mask
- * before it is deleted (TODO)
+ * before it is deleted
  */
 class Particle extends AABB {
   name: string;
@@ -25,7 +25,6 @@ class Particle extends AABB {
    * @param w       Width of particle
    * @param h       Height of particle
    * @param persist Persistence
-   * @param surface Particle sprite
    */
   constructor(
     name: string,
@@ -33,7 +32,7 @@ class Particle extends AABB {
     y: number,
     w: number,
     h: number,
-    persist: boolean,
+    persist: boolean
   ) {
     super(x, y, w, h);
     this.name = name;

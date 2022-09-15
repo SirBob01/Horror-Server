@@ -1,7 +1,5 @@
 import { randrange, Vec2D } from 'dynamojs-engine';
-import {
-  hit_sounds,
-} from '../Assets';
+import { hit_sounds } from '../Assets';
 import { Blood } from '../Particle';
 import { Bullet } from './Bullet';
 import { Entity } from './Entity';

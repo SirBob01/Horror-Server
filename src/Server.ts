@@ -21,7 +21,11 @@ const generate_random_string = (length: number) => {
 };
 
 class Server {
-  private io: SocketServer<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap>;
+  private io: SocketServer<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    DefaultEventsMap
+  >;
 
   private players: Map<string, Player>;
 
@@ -53,7 +57,7 @@ class Server {
         }
         const game = new Game(key, player.socket);
         game.join(player);
-        game.sendLobbyData();
+        game.send_lobby_data();
         this.games.set(key, game);
 
         // Share the key with friends to join lobby
@@ -68,7 +72,7 @@ class Server {
             .map((player) => player.socket.id)
             .includes(socket.id);
           if (!joined) game.join(player);
-          game.sendLobbyData();
+          game.send_lobby_data();
           callback(true);
         } else {
           callback(false);
@@ -76,9 +80,9 @@ class Server {
       });
 
       // Set player name
-      socket.on('setName', (name) => {
+      socket.on('setname', (name) => {
         player.name = name;
-        player.game?.sendLobbyData();
+        player.game?.send_lobby_data();
       });
 
       // Handle key input

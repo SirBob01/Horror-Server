@@ -1,34 +1,14 @@
 import { Color, Vec2D } from 'dynamojs-engine';
-import {
-  shoot_sound,
-  shoot_click_sound,
-  reload_sound,
-} from '../../Assets';
+import { shoot_sound, shoot_click_sound, reload_sound } from '../../Assets';
 import { Bullet } from '../Bullet';
 import { Entity } from '../Entity';
 import { Flashlight } from './Flashlight';
 import { Light } from '../../World';
 
 /**
- * Human callback methods
- */
-interface HumanCallbacks {
-  /**
-   * Callback when the human reloads
-   */
-  on_reload(): void;
-
-  /**
-   * Callback when the human shoots
-   */
-  on_shoot(): void;
-}
-
-/**
  * Human character
  */
 class Human extends Entity {
-  private callbacks: HumanCallbacks;
   private speed: number;
 
   private max_health: number;
@@ -58,11 +38,6 @@ class Human extends Entity {
    */
   constructor(x: number, y: number) {
     super('human', 'friendly', x, y, 24, 48, 'Collider');
-    this.callbacks = {
-      on_reload: () => {},
-      on_shoot: () => {},
-    };
-
     this.speed = 0.1;
 
     this.max_health = 3;
@@ -90,16 +65,6 @@ class Human extends Entity {
     this.shoot_timer = 0;
 
     this.flashlight = new Flashlight();
-  }
-
-  /**
-   * Set the callback functions invoked during human events
-   * like shooting or reloading
-   *
-   * @param callbacks Callback functions
-   */
-  set_callbacks(callbacks: HumanCallbacks) {
-    this.callbacks = callbacks;
   }
 
   /**
@@ -177,7 +142,6 @@ class Human extends Entity {
         this.ammo += bullet_count;
         this.reload_timer = 0;
         this.reloading = false;
-        this.callbacks.on_reload();
       }
     }
 
@@ -252,7 +216,6 @@ class Human extends Entity {
       });
     }
     this.shoot_timer = this.max_shoot_timer;
-    this.callbacks.on_shoot();
   }
 
   /**
@@ -275,4 +238,3 @@ class Human extends Entity {
 }
 
 export { Human };
-export type { HumanCallbacks };

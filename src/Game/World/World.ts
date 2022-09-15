@@ -19,16 +19,16 @@ class World {
 
   /**
    * Create a new world
-   * 
-   * @param humans 
-   * @param monster 
-   * @param map 
+   *
+   * @param humans
+   * @param monster
+   * @param map
    */
   constructor(humans: Human[], monster: Monster, map: WorldMap) {
     this.map = map;
 
     // Objects
-    this.entities = [... humans, monster];
+    this.entities = [...humans, monster];
     this.particles = []; // Non-interactive entities used for visual effects
 
     // World data for sensors

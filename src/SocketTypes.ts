@@ -2,8 +2,6 @@
 import {
   KeyInputData,
   MouseInputData,
-  PixelData,
-  SpriteSet,
   LobbyPlayer,
   LobbyData,
   StartData,
@@ -28,12 +26,12 @@ interface ClientToServerEvents {
   /**
    * Set the name of a player
    */
-  setName: (name: string) => void;
+  setname: (name: string) => void;
 
   /**
-   * Set the pixel data of a player's sprites
+   * Name of the map to be played
    */
-  setPixelData: (pixelData: SpriteSet) => void;
+  setmap: (name: string) => void;
 
   /**
    * Start a game
@@ -91,8 +89,6 @@ export type {
   ServerToClientEvents,
   KeyInputData,
   MouseInputData,
-  PixelData,
-  SpriteSet,
   LobbyPlayer,
   LobbyData,
   StartData,

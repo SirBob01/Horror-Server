@@ -22,19 +22,17 @@ http_server.listen(port, () => {
 // Run game logic
 const server = new Server(http_server);
 
-// Update the world at 60 FPS, broadcast game state at 15 fps
+// Update the server simulations at full capacity
 let last_time = 0;
 const dt_cap = 100;
 const callback = (elapsed: number) => {
-  const dt = clamp(
-    elapsed - last_time,
-    0,
-    dt_cap
-  );
+  const dt = clamp(elapsed - last_time, 0, dt_cap);
   last_time = elapsed;
   server.update(dt);
 
   setImmediate(() => callback(Date.now()));
 };
 setImmediate(() => callback(Date.now()));
+
+// Broadcast game state at 15 fps
 setInterval(() => server.broadcast(), 1000.0 / 15.0);

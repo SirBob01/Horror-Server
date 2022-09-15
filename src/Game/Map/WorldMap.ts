@@ -1,4 +1,4 @@
-import { AABB, Surface, Vec2D } from 'dynamojs-engine';
+import { AABB, Vec2D } from 'dynamojs-engine';
 import { Light } from '../World';
 import {
   NarrowAttachment,
@@ -74,12 +74,6 @@ interface WorldMap {
    * @param layer
    */
   get_tile(x: number, y: number, layer: Layer): Tile;
-
-  /**
-   * Get the tile sprite associated with this GID
-   * @param tile
-   */
-  get_sprite(tile: Tile): Surface | null;
 
   /**
    * Get the list of attachments for a given tile

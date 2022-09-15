@@ -1,4 +1,6 @@
-import { AABB, Color, Sprite, Surface, Vec2D } from 'dynamojs-engine';
+import { XMLParser } from 'fast-xml-parser';
+import { readFileSync } from 'fs';
+import { AABB, Color, Vec2D } from 'dynamojs-engine';
 import { Light } from '../World';
 import { NarrowAttachment, TileAttachment } from './Attachment';
 import { Layer, Tile, WorldMap } from './WorldMap';
@@ -7,31 +9,6 @@ import { Layer, Tile, WorldMap } from './WorldMap';
  * 2D array of tile GIDs within a layer
  */
 type LayerTiles = Tile[][];
-
-/**
- * Meta data for a tileset
- */
-interface Tileset {
-  /**
-   * 2D grid of surface tiles to index from
-   */
-  sprites: Surface[][];
-
-  /**
-   * First GID of the tileset
-   */
-  firstgid: Tile;
-
-  /**
-   * Total number of tiles in the tileset
-   */
-  tilecount: number;
-
-  /**
-   * Size of the grid (dimensions of `sprites`)
-   */
-  gridsize: Vec2D;
-}
 
 /**
  * Helper function set the fields of an attachment from raw key-value string pairs
@@ -97,7 +74,7 @@ function makeAttachment<Type extends TileAttachment['type']>(
 class TmxMap implements WorldMap {
   private directory: string;
 
-  private tilesets: Map<string, Tileset>;
+  private parser: XMLParser;
 
   private attachments: Map<Tile, Map<TileAttachment['type'], TileAttachment[]>>;
 
@@ -122,14 +99,19 @@ class TmxMap implements WorldMap {
    *
    * @param file
    */
-  constructor(file: string, onload: (map: WorldMap) => void) {
+  constructor(file: string) {
     this.directory = file.split('/').slice(0, -1).join('/');
+    this.parser = new XMLParser({
+      ignoreAttributes: false,
+      allowBooleanAttributes: true,
+      isArray: (name, jpath, isLeafNode, isAttribute) => {
+        return !isAttribute;
+      },
+    });
 
     this.layers = new Map(); // Tilemap layers
     this.attachments = new Map(); // All tile-specific attachments
     this.size = new Vec2D(0, 0);
-
-    this.tilesets = new Map();
     this.tilesize = new Vec2D(0, 0);
 
     this.navmesh = [];
@@ -138,240 +120,165 @@ class TmxMap implements WorldMap {
     this.outdoors = false;
     this.raining = true;
 
-    this.load_xml(file).then(async (xml: XMLDocument) => {
-      await this.parse_tmx(xml);
-      onload(this);
-    });
-  }
-
-  /**
-   * Download an XML file
-   *
-   * @param file
-   */
-  private load_xml(file: string) {
-    return new Promise((resolve: (xml: XMLDocument) => void) => {
-      const request = new XMLHttpRequest();
-      request.overrideMimeType('text/xml');
-      request.onreadystatechange = function () {
-        if (
-          request.status === 200 &&
-          request.readyState === 4 &&
-          request.responseXML
-        ) {
-          resolve(request.responseXML);
-        } else if (request.status === 404) {
-          throw new Error('Unable to load XML file ' + file + '.');
-        }
-      };
-      request.open('GET', file, false);
-      request.send();
-    });
+    const buffer = readFileSync(file);
+    this.parse_tmx(this.parser.parse(buffer));
   }
 
   /**
    * Parse the TMX file
    *
-   * @param xml
+   * @param tmx
    */
-  private async parse_tmx(xml: XMLDocument) {
-    const header = xml.getElementsByTagName('map')[0];
-    const properties = header.getElementsByTagName('properties')[0];
-    const tilesets = xml.getElementsByTagName('tileset');
-    const layers = xml.getElementsByTagName('layer');
-
-    // Read map properties
-    if (properties) {
-      for (const prop of properties.children) {
-        if (prop.getAttribute('name') === 'Outdoors') {
-          this.outdoors = prop.getAttribute('value') === 'true';
-        }
-      }
-    }
+  private parse_tmx(tmx: any) {
+    const map = tmx['map'][0];
 
     // Tile dimensions
-    const tilewidth = header.getAttribute('tilewidth');
-    const tileheight = header.getAttribute('tileheight');
-    if (tilewidth === null || tileheight === null) {
+    const tilewidth = parseInt(map['@_tilewidth']);
+    const tileheight = parseInt(map['@_tileheight']);
+    if (isNaN(tilewidth) || isNaN(tileheight)) {
       throw new Error('Invalid tile dimensions!');
     }
-    this.tilesize = new Vec2D(parseInt(tilewidth), parseInt(tileheight));
+    this.tilesize = new Vec2D(tilewidth, tileheight);
 
     // Grid size
-    const width = header.getAttribute('width');
-    const height = header.getAttribute('height');
-    if (width === null || height === null) {
+    const width = parseInt(map['@_width']);
+    const height = parseInt(map['@_height']);
+    if (isNaN(width) || isNaN(height)) {
       throw new Error('Invalid map dimensions!');
     }
-    this.size = new Vec2D(parseInt(width), parseInt(height));
+    this.size = new Vec2D(width, height);
 
-    // Load tilesets from external files
-    for (let i = 0; i < tilesets.length; i++) {
-      const file = tilesets[i].getAttribute('source');
-      const gid = tilesets[i].getAttribute('firstgid');
+    // Parse map properties
+    const properties: any[] = map['properties'] || [];
+    properties.forEach((child) => {
+      const property = child['property'][0];
+      if (property['@_name'] === 'Outdoors') {
+        this.outdoors = property['@_value'] === 'true';
+      }
+    });
 
-      let tileset_root;
-      if (file !== null) {
-        const tileset_xml = await this.load_xml(this.directory + '/' + file);
-        tileset_root = tileset_xml.getElementsByTagName('tileset')[0];
-      } else {
-        tileset_root = tilesets[i];
+    // Parse tilesets
+    const tilesets: any[] = map['tileset'] || [];
+    tilesets.forEach((tileset) => {
+      const file = tileset['@_source'];
+      const firstgid = parseInt(tileset['@_firstgid']);
+      if (isNaN(firstgid) || !file) {
+        throw new Error('Invalid tileset found!');
       }
 
-      if (gid === null) {
-        throw new Error('TMX file may be corrupted! `firstgid` not found.');
-      }
-      this.read_tileset(tileset_root, parseInt(gid));
-    }
+      const buffer = readFileSync(`${this.directory}/${file}`);
+      const tsx = this.parser.parse(buffer);
+      this.parse_tsx(tsx, firstgid);
+    });
 
-    // Load each layer
-    for (let i = 0; i < layers.length; i++) {
-      const data = layers[i].getElementsByTagName('data')[0];
-      const name = layers[i].getAttribute('name');
-      if (name && data.childNodes[0].nodeValue) {
-        this.layers.set(
-          name as Layer,
-          this.read_layer(data.childNodes[0].nodeValue)
-        );
-      }
-    }
+    // Parse each layer
+    const layers: any[] = map['layer'] || [];
+    layers.forEach((layer) => {
+      const data = layer['data'][0]['#text'];
+      const name = layer['@_name'];
+      this.layers.set(name as Layer, this.read_layer(data));
+    });
+
     this.generate_navmesh();
     this.generate_wallmesh();
     this.generate_waypoints();
   }
 
   /**
-   * Get the attachments from the tileset file
-   *
-   * @param tileset
-   * @param firstgid
-   */
-  private read_attachments(tileset: Element, firstgid: number) {
-    const tilemeta = tileset.getElementsByTagName('tile');
-
-    for (let i = 0; i < tilemeta.length; i++) {
-      const id_field = tilemeta[i].getAttribute('id');
-      if (id_field === null) {
-        throw new Error(
-          'TSX file may be corrupted! Tile does not have an `id` field'
-        );
-      }
-      const tile = parseInt(id_field) + firstgid;
-      const attachment_types = new Map<
-        TileAttachment['type'],
-        TileAttachment[]
-      >();
-      this.attachments.set(tile, attachment_types);
-
-      const attachments_field = tilemeta[i].getElementsByTagName('object');
-      for (let j = 0; j < attachments_field.length; j++) {
-        const attachment_field = attachments_field[j];
-        const type_field = attachment_field.getAttribute('type');
-        if (type_field === null) {
-          throw new Error(
-            'TSX file may be corrupted! Tile attachment does not have a `type` field.'
-          );
-        }
-        const type = type_field as TileAttachment['type'];
-        if (!attachment_types.has(type)) {
-          attachment_types.set(type, []);
-        }
-        const x_field = attachment_field.getAttribute('x');
-        const y_field = attachment_field.getAttribute('y');
-        const width_field = attachment_field.getAttribute('width');
-        const height_field = attachment_field.getAttribute('height');
-        if (x_field === null || y_field === null) {
-          throw new Error(
-            'TSX file may be corrupted! Tile attachment does not have x, y, width, height fields.'
-          );
-        }
-
-        // Generate the attachment object based on the given fields
-        const rect = new AABB(
-          Math.round(parseFloat(x_field || '0')),
-          Math.round(parseFloat(y_field || '0')),
-          Math.round(parseFloat(width_field || '0')),
-          Math.round(parseFloat(height_field || '0'))
-        );
-        const fields = new Map<string, string>();
-        const prop_list = attachment_field.getElementsByTagName('properties');
-        if (prop_list.length) {
-          const properties = prop_list[0].getElementsByTagName('property');
-          for (let k = 0; k < properties.length; k++) {
-            const key = properties[k].getAttribute('name');
-            const val = properties[k].getAttribute('value');
-            if (key && val) {
-              fields.set(key, val);
-            }
-          }
-        }
-        this.attachments
-          .get(tile)
-          ?.get(type)
-          ?.push(makeAttachment(type, rect, fields));
-      }
-    }
-  }
-
-  /**
    * Get the tiles from the tileset file
    *
-   * @param tileset
+   * @param tsx
    * @param firstgid
    */
-  private read_tileset(tileset: Element, firstgid: number) {
-    const id = tileset.getAttribute('name');
-    if (id === null) {
+  private parse_tsx(tsx: any, firstgid: number) {
+    const tileset = tsx['tileset'][0];
+    const id = tileset['@_name'];
+    if (!id) {
       throw new Error('TSX file may be corrupted! `name` field not found');
     }
 
-    const image = tileset.getElementsByTagName('image')[0];
-    const imagewidth = image.getAttribute('width');
-    const imageheight = image.getAttribute('height');
-
-    if (image === null || imagewidth === null || imageheight === null) {
+    const image = tileset['image'][0];
+    if (!image) {
       throw new Error(
         'TSX file may be corrupted! Tileset image specifications not defined.'
       );
     }
 
-    const gridwidth = Math.floor(parseInt(imagewidth) / this.tilesize.x);
-    const gridheight = Math.floor(parseInt(imageheight) / this.tilesize.y);
-
-    // The actual image file
-    const sprites: Surface[][] = [];
-    const source_dir = image.getAttribute('source');
-    const base = new Surface(parseInt(imagewidth), parseInt(imageheight));
-    new Sprite(this.directory + '/' + source_dir, 0, 0, 0, (s) => {
-      base.draw_sprite(s, base.rect());
-      for (let y = 0; y < gridheight; y++) {
-        const row = [];
-        for (let x = 0; x < gridwidth; x++) {
-          row.push(
-            base.subsurface(
-              new AABB(
-                x * this.tilesize.x,
-                y * this.tilesize.y,
-                this.tilesize.x,
-                this.tilesize.y
-              )
-            )
-          );
-        }
-        sprites.push(row);
-      }
-    });
-
-    const tilecount = tileset.getAttribute('tilecount');
-    if (id !== null && tilecount !== null) {
-      this.tilesets.set(id, {
-        firstgid,
-        tilecount: parseInt(tilecount),
-        gridsize: new Vec2D(gridwidth, gridheight),
-        sprites,
-      });
-      this.read_attachments(tileset, firstgid);
+    const imagefile = image['@_source'];
+    const imagewidth = parseInt(image['@_width']);
+    const imageheight = parseInt(image['@_height']);
+    if (!imagefile || isNaN(imagewidth) || isNaN(imageheight)) {
+      throw new Error('Invalid TSX image file found!');
     }
+
+    const tiles: any[] = tileset['tile'] || [];
+    tiles.forEach((tile) => {
+      const id_offset = parseInt(tile['@_id']);
+      if (isNaN(id_offset)) {
+        throw new Error(
+          'TSX file may be corrupted! Tile does not have an `id` field'
+        );
+      }
+
+      const tileid = firstgid + id_offset;
+      const attachment_types = new Map<
+        TileAttachment['type'],
+        TileAttachment[]
+      >();
+      this.attachments.set(tileid, attachment_types);
+
+      const objectgroup: any[] = tile['objectgroup'] || [];
+      objectgroup.forEach((group) => {
+        const objects: any[] = group['object'] || [];
+        objects.forEach((object) => {
+          if (!object['@_type']) {
+            throw new Error(
+              'TSX file may be corrupted! Tile attachment does not have a `type` field'
+            );
+          }
+          const type = object['@_type'] as TileAttachment['type'];
+          if (!attachment_types.has(type)) {
+            attachment_types.set(type, []);
+          }
+
+          const x = parseInt(object['@_x']);
+          const y = parseInt(object['@_y']);
+          if (isNaN(x) || isNaN(y)) {
+            throw new Error(
+              'TSX file may be corrupted! Tile attachment does not have valid coordinate fields.'
+            );
+          }
+
+          // Construct local bounding volume of the attachment
+          const rect = new AABB(
+            Math.round(x),
+            Math.round(y),
+            Math.round(parseInt(object['@_width'] || '0')),
+            Math.round(parseInt(object['@_height'] || '0'))
+          );
+
+          // Read custom properties for the attachment
+          const fields = new Map<string, string>();
+          const properties_container: any[] = object['properties'];
+          if (properties_container) {
+            const properties: any[] = properties_container[0]['property'];
+            properties.forEach((property) => {
+              const name = property['@_name'];
+              const value = property['@_value'];
+              if (name && value) {
+                fields.set(name, value);
+              }
+            });
+          }
+
+          // Add the new attachment
+          this.attachments
+            .get(tileid)
+            ?.get(type)
+            ?.push(makeAttachment(type, rect, fields));
+        });
+      });
+    });
   }
 
   /**
@@ -381,8 +288,6 @@ class TmxMap implements WorldMap {
    */
   private read_layer(csv: string) {
     const lines = csv.split('\n');
-    lines.pop();
-    lines.shift();
 
     const tiles = [];
     for (const line of lines) {
@@ -395,6 +300,12 @@ class TmxMap implements WorldMap {
         row.push(parseInt(token));
       }
       tiles.push(row);
+      if (row.length !== this.size.x) {
+        throw new Error('Invalid layer row length!');
+      }
+    }
+    if (tiles.length !== this.size.y) {
+      throw new Error('Invalid layer height!');
     }
     return tiles;
   }
@@ -493,37 +404,6 @@ class TmxMap implements WorldMap {
       return 0;
     }
     return layer_tiles[y][x];
-  }
-
-  /**
-   * Get the tile sprite associated with a global id
-   *
-   * @param tile
-   */
-  get_sprite(tile: Tile) {
-    if (tile === 0) {
-      return null;
-    }
-
-    // Find the relevant tileset
-    let tileset: undefined | Tileset;
-    this.tilesets.forEach((current) => {
-      const lastgid = current.tilecount + current.firstgid - 1;
-      if (tile <= lastgid) {
-        tileset = current;
-        return;
-      }
-    });
-
-    // Get the image associated with the GID
-    if (tileset !== undefined && tileset.sprites.length) {
-      const index = tile - tileset.firstgid + 1;
-      const y = Math.ceil(index / tileset.gridsize.x) - 1;
-      const x = index - tileset.gridsize.x * y - 1;
-      return tileset.sprites[y][x];
-    } else {
-      return null;
-    }
   }
 
   /**

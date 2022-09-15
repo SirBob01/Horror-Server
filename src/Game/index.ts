@@ -7,7 +7,4 @@ export type {
   EntityData,
   GameStateData,
 } from './Game';
-export type {
-  KeyInputData,
-  MouseInputData,
-} from './Player';
+export type { KeyInputData, MouseInputData } from './Player';
