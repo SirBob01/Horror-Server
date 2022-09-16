@@ -36,6 +36,7 @@ class Server {
    */
   constructor(server: http.Server) {
     this.io = new SocketServer(server, {
+      maxHttpBufferSize: 1e9,
       cors: {
         origin: '*',
       },

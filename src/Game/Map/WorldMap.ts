@@ -28,6 +28,68 @@ type Layer = typeof MapLayers[number];
 type Tile = number;
 
 /**
+ * 2D array of tile GIDs within a layer
+ */
+type LayerTiles = Tile[][];
+
+/**
+ * Sprite image associated with a tile
+ */
+ interface TileImage {
+  /**
+   * Image source file
+   */
+  imagefile: string;
+
+  /**
+   * Column index
+   */
+  x: number;
+
+  /**
+   * Row index
+   */
+  y: number;
+}
+
+/**
+ * Transferrable data via socket to the client
+ * 
+ * This will contain all information about tile attachments, sprites, and the layers
+ */
+interface ClientMap {
+  /**
+   * Gridsize of the map
+   */
+  size: Vec2D;
+
+  /**
+   * Tile size in pixels
+   */
+  tilesize: Vec2D;
+
+  /**
+   * Raw image buffers for each tileset
+   */
+  tilesets: Map<string, Buffer>;
+
+  /**
+   * Tile attachment mapping
+   */
+  attachments: Map<Tile, Map<TileAttachment['type'], TileAttachment[]>>;
+
+  /**
+   * Tile sprite mapping
+   */
+  sprites: Map<Tile, TileImage>;
+
+  /**
+   * Actual map tile data
+   */
+  layers: Map<Layer, LayerTiles>;
+}
+
+/**
  * WorldMap interface
  */
 interface WorldMap {
@@ -99,7 +161,12 @@ interface WorldMap {
    * Get all lights on the map
    */
   get_lights(): Light[];
+
+  /**
+   * Get socket transferrable data
+   */
+  get_socket_data(): ClientMap;
 }
 
 export { MapLayers };
-export type { WorldMap, Layer, Tile };
+export type { WorldMap, Layer, Tile, LayerTiles, TileImage, ClientMap };

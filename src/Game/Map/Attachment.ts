@@ -39,7 +39,7 @@ interface LightAttachment extends BaseAttachment {
   /**
    * Half angle of the emission cone
    */
-  halfAngle: number;
+  half_angle: number;
 
   /**
    * Direction of the light
@@ -84,12 +84,12 @@ interface ExitAttachment extends BaseAttachment {
    *
    * Can be a unique identifier or a URL
    */
-  targetMap: string;
+  target_map: string;
 
   /**
    * Which spawn should the character enter from?
    */
-  targetSpawnId: string;
+  target_spawn_id: string;
 }
 
 /**

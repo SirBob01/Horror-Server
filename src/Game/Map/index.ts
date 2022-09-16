@@ -9,7 +9,7 @@ import {
   TileAttachment,
 } from './Attachment';
 import { TmxMap } from './TmxMap';
-import { MapLayers, Layer, WorldMap } from './WorldMap';
+import { MapLayers, Layer, WorldMap, ClientMap } from './WorldMap';
 
 export { MapLayers, TmxMap };
 export type {
@@ -23,4 +23,5 @@ export type {
   BlockerAttachment,
   SpawnAttachment,
   ExitAttachment,
+  ClientMap
 };

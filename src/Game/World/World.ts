@@ -1,10 +1,19 @@
-import { AABB, clamp } from 'dynamojs-engine';
-import { Entity, Monster, Human } from '../Entity';
+import { clamp } from 'dynamojs-engine';
+import { Entity } from '../Entity';
 import { Light } from './Light';
 import { Sound } from './Sound';
-import { WorldMap, MapLayers, ExitAttachment, SolidAttachment } from '../Map';
+import { WorldMap, MapLayers } from '../Map';
 import { Quadtree } from '../Utils';
 import { Particle } from '../Particle';
+
+/**
+ * Handler for when an entity transitions between worlds
+ */
+type WorldExitHandler = (
+  entity: Entity,
+  target_map: string, 
+  target_spawn: string
+) => void;
 
 /**
  * World simulation
@@ -16,6 +25,7 @@ class World {
   map_lights: Light[];
   lights: Light[];
   sounds: Sound[];
+  on_exit: WorldExitHandler;
 
   /**
    * Create a new world
@@ -24,17 +34,18 @@ class World {
    * @param monster
    * @param map
    */
-  constructor(humans: Human[], monster: Monster, map: WorldMap) {
+  constructor(map: WorldMap, on_exit: WorldExitHandler) {
     this.map = map;
 
     // Objects
-    this.entities = [...humans, monster];
+    this.entities = [];
     this.particles = []; // Non-interactive entities used for visual effects
 
     // World data for sensors
     this.map_lights = this.map.get_lights();
     this.lights = [];
     this.sounds = [];
+    this.on_exit = on_exit;
   }
 
   /**
@@ -44,11 +55,8 @@ class World {
    * @param name       Entity name
    * @param solid_tile Type of tile that blocks this entity
    */
-  private is_colliding(
-    bounds: AABB,
-    name: string,
-    solid_tile: SolidAttachment['type']
-  ) {
+  private is_colliding(entity: Entity) {
+    const bounds = entity.z_collider();
     const left = clamp(
       Math.floor((bounds.center.x - bounds.dim.x / 2.0) / this.map.tilesize.x),
       0,
@@ -72,18 +80,18 @@ class World {
 
     for (let x = left; x <= right; x++) {
       for (let y = top; y <= bottom; y++) {
-        if (name === 'player') {
+        if (entity.name === 'human' || entity.name === 'monster') {
           // Hit collider for exit
           const exits = this.map.get_attachments(x, y, 'Background', 'Exit');
-          for (const exit of exits as ExitAttachment[]) {
+          for (const exit of exits) {
             if (exit.rect.is_colliding(bounds)) {
-              // TODO: Handle moving between worlds
+              this.on_exit(entity, exit.target_map, exit.target_spawn_id);
             }
           }
         }
 
         for (const layer of MapLayers) {
-          const colliders = this.map.get_attachments(x, y, layer, solid_tile);
+          const colliders = this.map.get_attachments(x, y, layer, entity.solid_tile);
           for (const collider of colliders) {
             if (collider.rect.is_colliding(bounds)) {
               return true;
@@ -185,7 +193,7 @@ class World {
         const old_pos = ent.center.copy();
 
         ent.center.x += step.x / substeps;
-        if (this.is_colliding(ent.z_collider(), ent.name, ent.solid_tile)) {
+        if (this.is_colliding(ent)) {
           tile_collision = true;
           if (ent.vel.x < 0) {
             ent.collision.left = true;
@@ -196,7 +204,7 @@ class World {
         }
 
         ent.center.y += step.y / substeps;
-        if (this.is_colliding(ent.z_collider(), ent.name, ent.solid_tile)) {
+        if (this.is_colliding(ent)) {
           tile_collision = true;
           if (ent.vel.y < 0) {
             ent.collision.top = true;
@@ -278,6 +286,26 @@ class World {
   update(dt: number) {
     this.update_entities(dt);
     this.update_particles(dt);
+  }
+
+  /**
+   * Remove an existing entity from the world
+   * 
+   * @param entity
+   */
+  remove_entity(entity: Entity) {
+    const index = this.entities.findIndex((query) => query === entity);
+    if (index < 0) return;
+    this.entities.splice(index, 1);
+  }
+
+  /**
+   * Add a new external entity to the world
+   * 
+   * @param entity
+   */
+  add_entity(entity: Entity) {
+    this.entities.push(entity);
   }
 }
 

@@ -1,5 +1,6 @@
 import { Socket } from 'socket.io';
 import { ServerToClientEvents, ClientToServerEvents } from '../SocketTypes';
+import { Entity } from './Entity';
 import { Game } from './Game';
 
 /**
@@ -77,18 +78,17 @@ function generate_random_name() {
 class Player {
   socket: Socket<ClientToServerEvents, ServerToClientEvents>;
 
-  game: Game | null;
-
   name: string;
 
-  resources: number;
+  entity: Entity | null;
+
+  game: Game | null;
 
   constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
+    this.name = generate_random_name();
     this.socket = socket;
     this.game = null;
-
-    this.name = generate_random_name();
-    this.resources = 0;
+    this.entity = null;
   }
 
   /**

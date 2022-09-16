@@ -2,13 +2,33 @@ import { XMLParser } from 'fast-xml-parser';
 import { readFileSync } from 'fs';
 import { AABB, Color, Vec2D } from 'dynamojs-engine';
 import { Light } from '../World';
-import { NarrowAttachment, TileAttachment } from './Attachment';
-import { Layer, Tile, WorldMap } from './WorldMap';
+import { ExitAttachment, NarrowAttachment, TileAttachment } from './Attachment';
+import { Layer, LayerTiles, Tile, TileImage, ClientMap, WorldMap } from './WorldMap';
 
 /**
- * 2D array of tile GIDs within a layer
+ * Meta data for a tileset
  */
-type LayerTiles = Tile[][];
+interface Tileset {
+  /**
+   * Filename of the tileset image
+   */
+  imagefile: string;
+  
+  /**
+   * First GID of the tileset
+   */
+  firstgid: Tile;
+
+  /**
+   * Total number of tiles in the tileset
+   */
+  tilecount: number;
+ 
+  /**
+   * Size of the grid (dimensions of `sprites`)
+   */
+  gridsize: Vec2D;
+}
 
 /**
  * Helper function set the fields of an attachment from raw key-value string pairs
@@ -27,13 +47,13 @@ function makeAttachment<Type extends TileAttachment['type']>(
   } else if (type === 'Collider') {
     return { type, rect };
   } else if (type === 'Exit') {
-    const targetMap = fields.get('targetmap') || '.';
-    const targetSpawnId = fields.get('spawn') || '0';
+    const target_map = fields.get('targetmap') || '.';
+    const target_spawn_id = fields.get('spawn') || '0';
     return {
       type,
       rect,
-      targetMap,
-      targetSpawnId,
+      target_map,
+      target_spawn_id,
     };
   } else if (type === 'Light Source') {
     const [r, g, b] = (fields.get('color') || '255,255,255')
@@ -44,7 +64,7 @@ function makeAttachment<Type extends TileAttachment['type']>(
       .map(parseFloat);
     const color = new Color(r, g, b);
     const radius = parseFloat(fields.get('radius') || '100');
-    const halfAngle = parseFloat(
+    const half_angle = parseFloat(
       fields.get('half-angle') || '3.141592653589793'
     );
     const direction = new Vec2D(x, y).unit();
@@ -53,7 +73,7 @@ function makeAttachment<Type extends TileAttachment['type']>(
       rect,
       color,
       radius,
-      halfAngle,
+      half_angle,
       direction,
     };
   } else if (type === 'Occluder') {
@@ -76,9 +96,13 @@ class TmxMap implements WorldMap {
 
   private parser: XMLParser;
 
-  private attachments: Map<Tile, Map<TileAttachment['type'], TileAttachment[]>>;
+  public attachments: Map<Tile, Map<TileAttachment['type'], TileAttachment[]>>;
 
   public layers: Map<Layer, LayerTiles>;
+
+  public tilesets: Map<string, Tileset>;
+
+  public sprites: Map<Tile, TileImage>;
 
   public size: Vec2D;
 
@@ -111,6 +135,10 @@ class TmxMap implements WorldMap {
 
     this.layers = new Map(); // Tilemap layers
     this.attachments = new Map(); // All tile-specific attachments
+
+    this.tilesets = new Map();
+    this.sprites = new Map();
+
     this.size = new Vec2D(0, 0);
     this.tilesize = new Vec2D(0, 0);
 
@@ -210,6 +238,16 @@ class TmxMap implements WorldMap {
     if (!imagefile || isNaN(imagewidth) || isNaN(imageheight)) {
       throw new Error('Invalid TSX image file found!');
     }
+    
+    const tilecount = parseInt(tileset['@_tilecount']);
+    const gridsize = new Vec2D(imagewidth / this.tilesize.x, imageheight / this.tilesize.y);
+    const tileset_obj = {
+      firstgid,
+      tilecount,
+      gridsize,
+      imagefile
+    };
+    this.tilesets.set(id, tileset_obj);
 
     const tiles: any[] = tileset['tile'] || [];
     tiles.forEach((tile) => {
@@ -226,6 +264,7 @@ class TmxMap implements WorldMap {
         TileAttachment[]
       >();
       this.attachments.set(tileid, attachment_types);
+      this.sprites.set(tileid, this.get_sprite(tileid, tileset_obj));
 
       const objectgroup: any[] = tile['objectgroup'] || [];
       objectgroup.forEach((group) => {
@@ -392,6 +431,19 @@ class TmxMap implements WorldMap {
   }
 
   /**
+   * Get the sprite image associated with the tile
+   */
+  private get_sprite(tile: Tile, tileset: Tileset) {
+    const { firstgid, gridsize, imagefile } = tileset;
+    const index = tile - firstgid + 1;
+    const y = Math.ceil(index / gridsize.x) - 1;
+    const x = index - gridsize.x * y - 1;
+    return {
+      x, y, imagefile
+    } as TileImage;
+  }
+
+  /**
    * Get the tile at a layer
    *
    * @param x
@@ -466,7 +518,7 @@ class TmxMap implements WorldMap {
                 attachment.radius,
                 attachment.color,
                 attachment.direction,
-                attachment.halfAngle
+                attachment.half_angle
               )
             );
           }
@@ -490,6 +542,40 @@ class TmxMap implements WorldMap {
       }
     }
     return spawns;
+  }
+
+  /**
+   * Get exits
+   */
+  get_exits() {
+    const exits: ExitAttachment[] = [];
+    for (let x = 0; x < this.size.x; x++) {
+      for (let y = 0; y < this.size.y; y++) {
+        const attachments = this.get_attachments(x, y, 'Background', 'Exit');
+        exits.push(...attachments);
+      }
+    }
+    return exits;
+  }
+
+  /**
+   * Get socket transferrable data for the client
+   */
+  get_socket_data() {
+    const tilesets = new Map<string, Buffer>();
+    this.tilesets.forEach((tileset) => {
+      const buffer = readFileSync(`${this.directory}/${tileset.imagefile}`);
+      tilesets.set(tileset.imagefile, buffer);
+    }) 
+    const data: ClientMap = {
+      size: this.size,
+      tilesize: this.tilesize,
+      tilesets,
+      attachments: this.attachments,
+      sprites: this.sprites,
+      layers: this.layers
+    };
+    return data;
   }
 }
 
