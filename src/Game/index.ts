@@ -1,10 +1,3 @@
 export { Game } from './Game';
 export { Player } from './Player';
-export type {
-  LobbyPlayer,
-  LobbyData,
-  StartData,
-  EntityData,
-  GameStateData,
-} from './Game';
-export type { KeyInputData, MouseInputData } from './Player';
+export type { KeyInputSocketData, MouseInputSocketData } from './Player';

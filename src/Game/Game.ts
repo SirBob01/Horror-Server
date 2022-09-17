@@ -1,50 +1,9 @@
 import { Socket } from 'socket.io';
-import { ServerToClientEvents, ClientToServerEvents } from '../SocketTypes';
+import { ServerToClientEvents, ClientToServerEvents, LobbySocketData, PlayerSocketData } from '../SocketTypes';
 import { Player } from './Player';
 import { World } from './World';
-import { ClientMap, TmxMap } from './Map';
+import { TmxMap } from './Map';
 import { Human } from './Entity';
-
-/**
- * Defines the necessary data for the client to store player information
- */
-interface LobbyPlayer {
-  id: string;
-  name: string;
-  host: boolean;
-}
-
-/**
- * Data sent on lobby initialization
- */
-interface LobbyData {
-  players: LobbyPlayer[];
-  player_id: string;
-  player_name: string;
-}
-
-/**
- * Data sent when the game is started
- */
-interface StartData {
-  key: string;
-  map_data: ClientMap;
-}
-
-/**
- * Data sent for each entity
- */
-interface EntityData {
-  type: string;
-  owner_id: string | null;
-}
-
-/**
- * Live game state information
- */
-interface GameStateData {
-  entities: EntityData[];
-}
 
 /**
  * Runs the simulation logic for an individual game
@@ -139,7 +98,7 @@ class Game {
    * Send lobby information to the players
    */
   public send_lobby_data() {
-    const players: LobbyPlayer[] = this.players.map((player) => {
+    const players: PlayerSocketData[] = this.players.map((player) => {
       return {
         id: player.socket.id,
         name: player.name,
@@ -147,7 +106,7 @@ class Game {
       };
     });
     for (const player of this.players) {
-      const data: LobbyData = {
+      const data: LobbySocketData = {
         players,
         player_id: player.socket.id,
         player_name: player.name,
@@ -202,6 +161,7 @@ class Game {
       if (!initial_spawn) return;
 
       player.entity = new Human(initial_spawn.center.x, initial_spawn.center.y);
+      player.world = initial_world;
       initial_world.add_entity(player.entity);
     });
   }
@@ -225,9 +185,13 @@ class Game {
    */
   public broadcast() {
     this.players.forEach((player) => {
-      // player.socket.emit('broadcast', {
-      //   // TODO
-      // });
+      if (!player.world) return;
+      player.socket.emit('broadcast', {
+        entities: player.world.entities,
+        particles: player.world.particles,
+        lights: player.world.lights,
+        sounds: player.world.sounds
+      });
     });
   }
 
@@ -244,4 +208,3 @@ class Game {
 }
 
 export { Game };
-export type { LobbyPlayer, LobbyData, StartData, EntityData, GameStateData };

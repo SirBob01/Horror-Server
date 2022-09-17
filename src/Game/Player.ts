@@ -2,11 +2,12 @@ import { Socket } from 'socket.io';
 import { ServerToClientEvents, ClientToServerEvents } from '../SocketTypes';
 import { Entity } from './Entity';
 import { Game } from './Game';
+import { World } from './World';
 
 /**
  * Defines the keyboard input data format from the client
  */
-interface KeyInputData {
+interface KeyInputSocketData {
   /**
    * Key code
    */
@@ -21,7 +22,7 @@ interface KeyInputData {
 /**
  * Defines the mouse input data format from the client
  */
-interface MouseInputData {
+interface MouseInputSocketData {
   /**
    * Mouse0 - Left mouse
    * Mouse1 - Middle mouse
@@ -77,18 +78,18 @@ function generate_random_name() {
  */
 class Player {
   socket: Socket<ClientToServerEvents, ServerToClientEvents>;
-
   name: string;
 
-  entity: Entity | null;
-
   game: Game | null;
+  entity: Entity | null;
+  world: World | null;
 
   constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
     this.name = generate_random_name();
     this.socket = socket;
     this.game = null;
     this.entity = null;
+    this.world = null;
   }
 
   /**
@@ -96,14 +97,14 @@ class Player {
    *
    * @param mousedata
    */
-  public handle_mouse(mousedata: MouseInputData) {}
+  public handle_mouse(mousedata: MouseInputSocketData) {}
 
   /**
    * Handle keyboard input
    * @param keydata
    */
-  public handle_keys(keydata: KeyInputData) {}
+  public handle_keys(keydata: KeyInputSocketData) {}
 }
 
 export { Player };
-export type { KeyInputData, MouseInputData };
+export type { KeyInputSocketData, MouseInputSocketData };

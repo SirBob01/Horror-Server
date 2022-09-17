@@ -1,13 +1,48 @@
 /// This file defines all the necessary types for the communication between the client and server.
 import {
-  KeyInputData,
-  MouseInputData,
-  LobbyPlayer,
-  LobbyData,
-  StartData,
-  EntityData,
-  GameStateData,
+  KeyInputSocketData,
+  MouseInputSocketData,
 } from './Game';
+import { Entity } from './Game/Entity';
+import { WorldMapSocketData } from './Game/Map';
+import { Particle } from './Game/Particle';
+import { Light, Sound } from './Game/World';
+
+/**
+ * Defines the necessary data for the client to store player information
+ */
+ interface PlayerSocketData {
+  id: string;
+  name: string;
+  host: boolean;
+}
+
+/**
+ * Sent on lobby initialization
+ */
+interface LobbySocketData {
+  players: PlayerSocketData[];
+  player_id: string;
+  player_name: string;
+}
+
+/**
+ * Sent when the game is started
+ */
+interface StartSocketData {
+  key: string;
+  map_data: WorldMapSocketData;
+}
+
+/**
+ * Live game state information
+ */
+interface GameStateSocketData {
+  entities: Entity[];
+  particles: Particle[];
+  sounds: Sound[];
+  lights: Light[];
+}
 
 /**
  * Client-to-server events
@@ -46,12 +81,12 @@ interface ClientToServerEvents {
   /**
    * Handle keyboard input
    */
-  keystate: (input: KeyInputData) => void;
+  keystate: (input: KeyInputSocketData) => void;
 
   /**
    * Handle mouse input
    */
-  mousestate: (input: MouseInputData) => void;
+  mousestate: (input: MouseInputSocketData) => void;
 
   /**
    * Kick a player
@@ -66,17 +101,17 @@ interface ServerToClientEvents {
   /**
    * Emit lobby information to the players
    */
-  lobby: (data: LobbyData) => void;
+  lobby: (data: LobbySocketData) => void;
 
   /**
    * Emit the initial start data to the players
    */
-  start: (data: StartData) => void;
+  start: (data: StartSocketData) => void;
 
   /**
    * Live broadcast live game state information to the players
    */
-  broadcast: (state: GameStateData) => void;
+  broadcast: (state: GameStateSocketData) => void;
 
   /**
    * Kick a player
@@ -87,11 +122,10 @@ interface ServerToClientEvents {
 export type {
   ClientToServerEvents,
   ServerToClientEvents,
-  KeyInputData,
-  MouseInputData,
-  LobbyPlayer,
-  LobbyData,
-  StartData,
-  EntityData,
-  GameStateData,
+  KeyInputSocketData,
+  MouseInputSocketData,
+  PlayerSocketData,
+  LobbySocketData,
+  StartSocketData,
+  GameStateSocketData,
 };

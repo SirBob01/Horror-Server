@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { AABB, Color, Vec2D } from 'dynamojs-engine';
 import { Light } from '../World';
 import { ExitAttachment, NarrowAttachment, TileAttachment } from './Attachment';
-import { Layer, LayerTiles, Tile, TileImage, ClientMap, WorldMap } from './WorldMap';
+import { Layer, LayerTiles, Tile, TileImage, WorldMapSocketData, WorldMap } from './WorldMap';
 
 /**
  * Meta data for a tileset
@@ -567,7 +567,7 @@ class TmxMap implements WorldMap {
       const buffer = readFileSync(`${this.directory}/${tileset.imagefile}`);
       tilesets.set(tileset.imagefile, buffer);
     }) 
-    const data: ClientMap = {
+    const data: WorldMapSocketData = {
       size: this.size,
       tilesize: this.tilesize,
       tilesets,

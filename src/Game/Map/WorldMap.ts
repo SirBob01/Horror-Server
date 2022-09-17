@@ -57,7 +57,7 @@ type LayerTiles = Tile[][];
  * 
  * This will contain all information about tile attachments, sprites, and the layers
  */
-interface ClientMap {
+interface WorldMapSocketData {
   /**
    * Gridsize of the map
    */
@@ -165,8 +165,8 @@ interface WorldMap {
   /**
    * Get socket transferrable data
    */
-  get_socket_data(): ClientMap;
+  get_socket_data(): WorldMapSocketData;
 }
 
 export { MapLayers };
-export type { WorldMap, Layer, Tile, LayerTiles, TileImage, ClientMap };
+export type { WorldMap, Layer, Tile, LayerTiles, TileImage, WorldMapSocketData };
