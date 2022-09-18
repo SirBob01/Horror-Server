@@ -17,6 +17,7 @@ import {
   WorldMapSocketData,
   ServerMap,
   Tile,
+  TileImage,
 } from './WorldMap';
 
 export { MapLayers, TmxMap };
@@ -24,6 +25,7 @@ export type {
   WorldMap,
   Layer,
   Tile,
+  TileImage,
   TileAttachment,
   NarrowAttachment,
   SolidAttachment,
