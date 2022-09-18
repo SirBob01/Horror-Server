@@ -71,5 +71,4 @@ export {
   player_walk_sprite,
   monster_idle_sprite,
   monster_walk_sprite,
-  preload_sfx,
 };

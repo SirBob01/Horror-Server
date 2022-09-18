@@ -2,7 +2,7 @@ import { clamp } from 'dynamojs-engine';
 import { Entity } from '../Entity';
 import { Light } from './Light';
 import { Sound } from './Sound';
-import { WorldMap, MapLayers } from '../Map';
+import { MapLayers, ServerMap } from '../Map';
 import { Quadtree } from '../Utils';
 import { Particle } from '../Particle';
 
@@ -11,7 +11,7 @@ import { Particle } from '../Particle';
  */
 type WorldExitHandler = (
   entity: Entity,
-  target_map: string, 
+  target_map: string,
   target_spawn: string
 ) => void;
 
@@ -19,7 +19,7 @@ type WorldExitHandler = (
  * World simulation
  */
 class World {
-  map: WorldMap;
+  map: ServerMap;
   entities: Entity[];
   particles: Particle[];
   map_lights: Light[];
@@ -34,7 +34,7 @@ class World {
    * @param monster
    * @param map
    */
-  constructor(map: WorldMap, on_exit: WorldExitHandler) {
+  constructor(map: ServerMap, on_exit: WorldExitHandler) {
     this.map = map;
 
     // Objects
@@ -91,7 +91,12 @@ class World {
         }
 
         for (const layer of MapLayers) {
-          const colliders = this.map.get_attachments(x, y, layer, entity.solid_tile);
+          const colliders = this.map.get_attachments(
+            x,
+            y,
+            layer,
+            entity.solid_tile
+          );
           for (const collider of colliders) {
             if (collider.rect.is_colliding(bounds)) {
               return true;
@@ -290,7 +295,7 @@ class World {
 
   /**
    * Remove an existing entity from the world
-   * 
+   *
    * @param entity
    */
   remove_entity(entity: Entity) {
@@ -301,7 +306,7 @@ class World {
 
   /**
    * Add a new external entity to the world
-   * 
+   *
    * @param entity
    */
   add_entity(entity: Entity) {

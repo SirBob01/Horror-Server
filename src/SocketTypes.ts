@@ -1,14 +1,11 @@
 /// This file defines all the necessary types for the communication between the client and server.
-import {
-  KeyInputSocketData,
-  MouseInputSocketData,
-} from './Game';
+import { KeyInputSocketData, MouseInputSocketData } from './Game';
 import { Entity, Particle, Light, Sound, WorldMapSocketData } from './Game';
 
 /**
  * Defines the necessary data for the client to store player information
  */
- interface PlayerSocketData {
+interface PlayerSocketData {
   id: string;
   name: string;
   host: boolean;

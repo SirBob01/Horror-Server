@@ -1,5 +1,10 @@
 import { Socket } from 'socket.io';
-import { ServerToClientEvents, ClientToServerEvents, LobbySocketData, PlayerSocketData } from '../SocketTypes';
+import {
+  ServerToClientEvents,
+  ClientToServerEvents,
+  LobbySocketData,
+  PlayerSocketData,
+} from '../SocketTypes';
 import { Player } from './Player';
 import { World } from './World';
 import { TmxMap } from './Map';
@@ -131,16 +136,16 @@ class Game {
       const world = new World(map, (entity, target_map, target_spawn) => {
         const next_world = this.worlds.get(target_map);
         if (!next_world) return;
-  
+
         const next_spawn = next_world.map.get_spawns().get(target_spawn);
         if (!next_spawn) return;
-  
+
         entity.center.x = next_spawn.center.x;
         entity.center.y = next_spawn.center.y;
         next_world.add_entity(entity);
         this.players.find((player) => {
-          player
-        })
+          player;
+        });
       });
       this.worlds.set(file, world);
 
@@ -190,7 +195,7 @@ class Game {
         entities: player.world.entities,
         particles: player.world.particles,
         lights: player.world.lights,
-        sounds: player.world.sounds
+        sounds: player.world.sounds,
       });
     });
   }

@@ -35,7 +35,7 @@ type LayerTiles = Tile[][];
 /**
  * Sprite image associated with a tile
  */
- interface TileImage {
+interface TileImage {
   /**
    * Image source file
    */
@@ -54,7 +54,7 @@ type LayerTiles = Tile[][];
 
 /**
  * Transferrable data via socket to the client
- * 
+ *
  * This will contain all information about tile attachments, sprites, and the layers
  */
 interface WorldMapSocketData {
@@ -87,6 +87,16 @@ interface WorldMapSocketData {
    * Actual map tile data
    */
   layers: Map<Layer, LayerTiles>;
+
+  /**
+   * Is the map outdoors?
+   */
+  outdoors: boolean;
+
+  /**
+   * Is it raining?
+   */
+  raining: boolean;
 }
 
 /**
@@ -161,7 +171,12 @@ interface WorldMap {
    * Get all lights on the map
    */
   get_lights(): Light[];
+}
 
+/**
+ * Server-side representation of the map
+ */
+interface ServerMap extends WorldMap {
   /**
    * Get socket transferrable data
    */
@@ -169,4 +184,12 @@ interface WorldMap {
 }
 
 export { MapLayers };
-export type { WorldMap, Layer, Tile, LayerTiles, TileImage, WorldMapSocketData };
+export type {
+  WorldMap,
+  Layer,
+  Tile,
+  LayerTiles,
+  TileImage,
+  WorldMapSocketData,
+  ServerMap,
+};

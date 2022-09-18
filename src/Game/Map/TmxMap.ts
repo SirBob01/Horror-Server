@@ -3,7 +3,14 @@ import { readFileSync } from 'fs';
 import { AABB, Color, Vec2D } from 'dynamojs-engine';
 import { Light } from '../World';
 import { ExitAttachment, NarrowAttachment, TileAttachment } from './Attachment';
-import { Layer, LayerTiles, Tile, TileImage, WorldMapSocketData, WorldMap } from './WorldMap';
+import {
+  Layer,
+  LayerTiles,
+  Tile,
+  TileImage,
+  WorldMapSocketData,
+  ServerMap,
+} from './WorldMap';
 
 /**
  * Meta data for a tileset
@@ -13,7 +20,7 @@ interface Tileset {
    * Filename of the tileset image
    */
   imagefile: string;
-  
+
   /**
    * First GID of the tileset
    */
@@ -23,7 +30,7 @@ interface Tileset {
    * Total number of tiles in the tileset
    */
   tilecount: number;
- 
+
   /**
    * Size of the grid (dimensions of `sprites`)
    */
@@ -91,7 +98,7 @@ function makeAttachment<Type extends TileAttachment['type']>(
 /**
  * Map generated from a TMX file
  */
-class TmxMap implements WorldMap {
+class TmxMap implements ServerMap {
   private directory: string;
 
   private parser: XMLParser;
@@ -238,14 +245,17 @@ class TmxMap implements WorldMap {
     if (!imagefile || isNaN(imagewidth) || isNaN(imageheight)) {
       throw new Error('Invalid TSX image file found!');
     }
-    
+
     const tilecount = parseInt(tileset['@_tilecount']);
-    const gridsize = new Vec2D(imagewidth / this.tilesize.x, imageheight / this.tilesize.y);
+    const gridsize = new Vec2D(
+      imagewidth / this.tilesize.x,
+      imageheight / this.tilesize.y
+    );
     const tileset_obj = {
       firstgid,
       tilecount,
       gridsize,
-      imagefile
+      imagefile,
     };
     this.tilesets.set(id, tileset_obj);
 
@@ -439,7 +449,9 @@ class TmxMap implements WorldMap {
     const y = Math.ceil(index / gridsize.x) - 1;
     const x = index - gridsize.x * y - 1;
     return {
-      x, y, imagefile
+      x,
+      y,
+      imagefile,
     } as TileImage;
   }
 
@@ -566,14 +578,16 @@ class TmxMap implements WorldMap {
     this.tilesets.forEach((tileset) => {
       const buffer = readFileSync(`${this.directory}/${tileset.imagefile}`);
       tilesets.set(tileset.imagefile, buffer);
-    }) 
+    });
     const data: WorldMapSocketData = {
       size: this.size,
       tilesize: this.tilesize,
       tilesets,
       attachments: this.attachments,
       sprites: this.sprites,
-      layers: this.layers
+      layers: this.layers,
+      outdoors: this.outdoors,
+      raining: this.raining,
     };
     return data;
   }

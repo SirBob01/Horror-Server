@@ -9,12 +9,20 @@ import {
   TileAttachment,
 } from './Attachment';
 import { TmxMap } from './TmxMap';
-import { MapLayers, Layer, WorldMap, WorldMapSocketData } from './WorldMap';
+import {
+  MapLayers,
+  Layer,
+  WorldMap,
+  WorldMapSocketData,
+  ServerMap,
+  Tile,
+} from './WorldMap';
 
 export { MapLayers, TmxMap };
 export type {
   WorldMap,
   Layer,
+  Tile,
   TileAttachment,
   SolidAttachment,
   ColliderAttachment,
@@ -23,5 +31,6 @@ export type {
   BlockerAttachment,
   SpawnAttachment,
   ExitAttachment,
-  WorldMapSocketData
+  WorldMapSocketData,
+  ServerMap,
 };
