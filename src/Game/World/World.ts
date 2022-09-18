@@ -2,7 +2,7 @@ import { clamp } from 'dynamojs-engine';
 import { Entity } from '../Entity';
 import { Light } from './Light';
 import { Sound } from './Sound';
-import { MapLayers, ServerMap } from '../Map';
+import { MapLayers, WorldMap } from '../Map';
 import { Quadtree } from '../Utils';
 import { Particle } from '../Particle';
 
@@ -19,7 +19,7 @@ type WorldExitHandler = (
  * World simulation
  */
 class World {
-  map: ServerMap;
+  map: WorldMap;
   entities: Entity[];
   particles: Particle[];
   map_lights: Light[];
@@ -34,7 +34,7 @@ class World {
    * @param monster
    * @param map
    */
-  constructor(map: ServerMap, on_exit: WorldExitHandler) {
+  constructor(map: WorldMap, on_exit: WorldExitHandler) {
     this.map = map;
 
     // Objects
@@ -315,3 +315,4 @@ class World {
 }
 
 export { World };
+export type { WorldExitHandler };
