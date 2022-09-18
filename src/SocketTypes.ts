@@ -42,7 +42,7 @@ interface GameStateSocketData {
  * Map transitioning information
  */
 interface MapTransitionSocketData {
-  target_map: string;
+  map_data: WorldMapSocketData;
   target_spawn: string;
 }
 
@@ -136,5 +136,5 @@ export type {
   LobbySocketData,
   StartSocketData,
   GameStateSocketData,
-  MapTransitionSocketData
+  MapTransitionSocketData,
 };

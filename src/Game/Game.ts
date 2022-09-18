@@ -147,8 +147,9 @@ class Game {
 
         // Signal to the relevant player to transition maps
         const player = this.players.find((player) => player.entity === entity);
+        const map_data = (next_world.map as ServerMap).get_socket_data();
         player?.socket.emit('map_transition', {
-          target_map,
+          map_data,
           target_spawn,
         });
       });
