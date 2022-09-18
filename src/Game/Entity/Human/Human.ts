@@ -9,24 +9,24 @@ import { Light } from '../../World';
  * Human character
  */
 class Human extends Entity {
-  private speed: number;
+  protected speed: number;
 
-  private max_health: number;
-  private health: number;
+  protected max_health: number;
+  protected health: number;
 
-  private max_ammo: number;
-  private ammo: number;
-  private ammo_inventory: number;
+  protected max_ammo: number;
+  protected ammo: number;
+  protected ammo_inventory: number;
 
-  private reloading: boolean;
-  private max_reload_timer: number;
-  private reload_timer: number;
+  protected reloading: boolean;
+  protected max_reload_timer: number;
+  protected reload_timer: number;
 
-  private max_shoot_timer;
-  private shoot_timer;
+  protected max_shoot_timer;
+  protected shoot_timer;
 
-  private muzzle_flash: Light;
-  private muzzle_timer: number;
+  protected muzzle_flash: Light;
+  protected muzzle_timer: number;
 
   flashlight: Flashlight;
 

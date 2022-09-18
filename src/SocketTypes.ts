@@ -3,10 +3,7 @@ import {
   KeyInputSocketData,
   MouseInputSocketData,
 } from './Game';
-import { Entity } from './Game/Entity';
-import { WorldMapSocketData } from './Game/Map';
-import { Particle } from './Game/Particle';
-import { Light, Sound } from './Game/World';
+import { Entity, Particle, Light, Sound, WorldMapSocketData } from './Game';
 
 /**
  * Defines the necessary data for the client to store player information
@@ -119,6 +116,7 @@ interface ServerToClientEvents {
   kick: () => void;
 }
 
+export * from './Game';
 export type {
   ClientToServerEvents,
   ServerToClientEvents,
