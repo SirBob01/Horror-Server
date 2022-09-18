@@ -274,7 +274,7 @@ class TmxMap implements ServerMap {
         TileAttachment[]
       >();
       this.attachments.set(tileid, attachment_types);
-      this.sprites.set(tileid, this.get_sprite(tileid, tileset_obj));
+      this.sprites.set(tileid, this.get_tile_image(tileid, tileset_obj));
 
       const objectgroup: any[] = tile['objectgroup'] || [];
       objectgroup.forEach((group) => {
@@ -443,7 +443,7 @@ class TmxMap implements ServerMap {
   /**
    * Get the sprite image associated with the tile
    */
-  private get_sprite(tile: Tile, tileset: Tileset) {
+  private get_tile_image(tile: Tile, tileset: Tileset) {
     const { firstgid, gridsize, imagefile } = tileset;
     const index = tile - firstgid + 1;
     const y = Math.ceil(index / gridsize.x) - 1;
