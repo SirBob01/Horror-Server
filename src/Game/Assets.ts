@@ -1,9 +1,4 @@
 /**
- * Single repository for all in-game asset URLs
- */
-import { Jukebox } from 'dynamojs-engine';
-
-/**
  * Sound effects
  */
 const player_footstep_sounds = [
@@ -59,23 +54,6 @@ const player_walk_sprite = './imgs/sprites/player/gun_walk.png';
 
 const monster_idle_sprite = './imgs/sprites/monster/idle.png';
 const monster_walk_sprite = './imgs/sprites/monster/walk.png';
-
-/**
- * Pre-load all sound effects
- *
- * @param jukebox Jukebox
- */
-function preload_sfx(jukebox: Jukebox) {
-  player_footstep_sounds.forEach((url) => jukebox.load_sound(url));
-  monster_footstep_sounds.forEach((url) => jukebox.load_sound(url));
-  hit_sounds.forEach((url) => jukebox.load_sound(url));
-
-  jukebox.load_sound(shoot_click_sound);
-  jukebox.load_sound(shoot_sound);
-  jukebox.load_sound(reload_sound);
-
-  thunder_sounds.forEach((url) => jukebox.load_sound(url));
-}
 
 export {
   player_footstep_sounds,
