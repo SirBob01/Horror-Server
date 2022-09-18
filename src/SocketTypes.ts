@@ -39,6 +39,14 @@ interface GameStateSocketData {
 }
 
 /**
+ * Map transitioning information
+ */
+interface MapTransitionSocketData {
+  target_map: string;
+  target_spawn: string;
+}
+
+/**
  * Client-to-server events
  */
 interface ClientToServerEvents {
@@ -108,6 +116,11 @@ interface ServerToClientEvents {
   broadcast: (state: GameStateSocketData) => void;
 
   /**
+   * Handle transitioning between maps
+   */
+  map_transition: (data: MapTransitionSocketData) => void;
+
+  /**
    * Kick a player
    */
   kick: () => void;
@@ -123,4 +136,5 @@ export type {
   LobbySocketData,
   StartSocketData,
   GameStateSocketData,
+  MapTransitionSocketData
 };

@@ -4,6 +4,7 @@ import {
   ClientToServerEvents,
   LobbySocketData,
   PlayerSocketData,
+  ServerMap,
 } from '../SocketTypes';
 import { Player } from './Player';
 import { World } from './World';
@@ -143,8 +144,12 @@ class Game {
         entity.center.x = next_spawn.center.x;
         entity.center.y = next_spawn.center.y;
         next_world.add_entity(entity);
-        this.players.find((player) => {
-          player;
+
+        // Signal to the relevant player to transition maps
+        const player = this.players.find((player) => player.entity === entity);
+        player?.socket.emit('map_transition', {
+          target_map,
+          target_spawn,
         });
       });
       this.worlds.set(file, world);
@@ -177,7 +182,7 @@ class Game {
   public send_start_data() {
     const key = this.key;
     this.players.forEach((player) => {
-      const map = this.worlds.get(this.initial_map)?.map;
+      const map = this.worlds.get(this.initial_map)?.map as ServerMap;
       if (!map) return;
 
       const map_data = map.get_socket_data();
