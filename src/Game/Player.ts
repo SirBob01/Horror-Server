@@ -2,9 +2,8 @@ import { Socket } from 'socket.io';
 import { Game } from './Game';
 import {
   ClientToServerEvents,
+  Controllable,
   Entity,
-  KeyInputSocketData,
-  MouseInputSocketData,
   ServerToClientEvents,
   World,
 } from 'horror-simulation';
@@ -54,7 +53,7 @@ class Player {
   name: string;
 
   game: Game | null;
-  entity: Entity | null;
+  entity: (Entity & Controllable) | null;
   world: World | null;
 
   constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
@@ -64,20 +63,6 @@ class Player {
     this.entity = null;
     this.world = null;
   }
-
-  /**
-   * Handle mouse input
-   *
-   * @param mousedata
-   */
-  public handle_mouse(mousedata: MouseInputSocketData) {}
-
-  /**
-   * Handle keyboard input
-   * @param keydata
-   */
-  public handle_keys(keydata: KeyInputSocketData) {}
 }
 
 export { Player };
-export type { KeyInputSocketData, MouseInputSocketData };

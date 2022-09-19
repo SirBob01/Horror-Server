@@ -86,11 +86,10 @@ class Server {
         player.game?.send_lobby_data();
       });
 
-      // Handle key input
-      socket.on('keystate', player.handle_keys);
-
-      // Handle mouse input
-      socket.on('mousestate', player.handle_mouse);
+      // Handle input events
+      socket.on('input', (event) => {
+        player.entity?.handle_input(event)
+      });
 
       // Kicking a player
       socket.on('kick', (id) => {
