@@ -3,7 +3,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dynamojs-engine": "^1.5.6",
-    "horror-simulation": "git+ssh://git@github.com:SirBob01/Horror-Simulation.git#042e2b20fae7406c798a21805c1365d7085490d6",
+    "horror-simulation": "git+ssh://git@github.com:SirBob01/Horror-Simulation.git#41d2ea5ce8cf095c995e727e56e4990093368489",
     "express": "^4.18.1",
     "fast-xml-parser": "^4.0.10",
     "nodemon": "^2.0.19",

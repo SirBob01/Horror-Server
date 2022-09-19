@@ -576,18 +576,38 @@ class TmxMap implements ServerMap {
    * Get socket transferrable data for the client
    */
   get_socket_data() {
-    const tilesets = new Map<string, Buffer>();
+    const tilesets: [string, Buffer][] = [];
     this.tilesets.forEach((tileset) => {
       const buffer = readFileSync(`${this.directory}/${tileset.imagefile}`);
-      tilesets.set(tileset.imagefile, buffer);
+      tilesets.push([tileset.imagefile, buffer]);
     });
+
+    const attachments: [Tile, [TileAttachment['type'], TileAttachment[]][]][] = [];
+    this.attachments.forEach((mapping, tile) => {
+      const list: [TileAttachment['type'], TileAttachment[]][] = [];
+      mapping.forEach((objects, type) => {
+        list.push([type, objects]);
+      });
+      attachments.push([tile, list]);
+    });
+
+    const sprites: [Tile, TileImage][] = [];
+    this.sprites.forEach((image, tile) => {
+      sprites.push([tile, image]);
+    });
+
+    const layers: [Layer, LayerTiles][] = [];
+    this.layers.forEach((layer, type) => {
+      layers.push([type, layer]);
+    });
+
     const data: WorldMapSocketData = {
       size: this.size,
       tilesize: this.tilesize,
       tilesets,
-      attachments: this.attachments,
-      sprites: this.sprites,
-      layers: this.layers,
+      attachments,
+      sprites,
+      layers,
       outdoors: this.outdoors,
       raining: this.raining,
     };
