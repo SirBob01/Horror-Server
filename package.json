@@ -1,15 +1,9 @@
 {
   "name": "horror-server",
-  "main": "./build/SocketTypes.js",
-  "module": "./build/SocketTypes.js",
-  "types": "./build/SocketTypes.d.ts",
-  "files": [
-    "build",
-    "branchBuild.js"
-  ],
   "dependencies": {
     "cors": "^2.8.5",
-    "dynamojs-engine": "^1.1.0",
+    "dynamojs-engine": "^1.5.6",
+    "horror-simulation": "git+ssh://git@github.com:SirBob01/Horror-Simulation.git#042e2b20fae7406c798a21805c1365d7085490d6",
     "express": "^4.18.1",
     "fast-xml-parser": "^4.0.10",
     "nodemon": "^2.0.19",
@@ -21,8 +15,7 @@
     "lint": "prettier --write src/* && eslint --fix src",
     "build": "tsc",
     "debug": "nodemon src/index.ts",
-    "start": "tsc && nodemon build/index.js",
-    "postinstall": "node branchBuild.js"
+    "start": "tsc && nodemon build/index.js"
   },
   "devDependencies": {
     "@types/cors": "^2.8.12",

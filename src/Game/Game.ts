@@ -1,15 +1,15 @@
-import { Socket } from 'socket.io';
 import {
-  ServerToClientEvents,
   ClientToServerEvents,
-  LobbySocketData,
+  ServerToClientEvents,
+  World,
   PlayerSocketData,
+  LobbySocketData,
   ServerMap,
-} from '../SocketTypes';
+  Human,
+} from 'horror-simulation';
+import { Socket } from 'socket.io';
 import { Player } from './Player';
-import { World } from './World';
-import { TmxMap } from './Map';
-import { Human } from './Entity';
+import { TmxMap } from './TmxMap';
 
 /**
  * Runs the simulation logic for an individual game

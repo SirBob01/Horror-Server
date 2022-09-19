@@ -1,16 +1,18 @@
 import { XMLParser } from 'fast-xml-parser';
 import { readFileSync } from 'fs';
 import { AABB, Color, Vec2D } from 'dynamojs-engine';
-import { Light } from '../World';
-import { ExitAttachment, NarrowAttachment, TileAttachment } from './Attachment';
 import {
+  ExitAttachment,
   Layer,
   LayerTiles,
+  Light,
+  NarrowAttachment,
+  ServerMap,
   Tile,
+  TileAttachment,
   TileImage,
   WorldMapSocketData,
-  ServerMap,
-} from './WorldMap';
+} from 'horror-simulation';
 
 /**
  * Meta data for a tileset
