@@ -260,8 +260,21 @@ class TmxMap implements ServerMap {
       imagefile,
     };
     this.tilesets.set(id, tileset_obj);
+    this.read_attachments(tileset['tile'], firstgid);
 
-    const tiles: any[] = tileset['tile'] || [];
+    // Assign each tileid a (row, col) coordinate on the tileset
+    for (let tileid = firstgid; tileid < firstgid + tilecount; tileid++) {
+      this.sprites.set(tileid, this.get_tile_image(tileid, tileset_obj));
+    }
+  }
+
+  /**
+   * Read the attachments to tile objects
+   *
+   * @param tiles
+   * @param tileset_obj
+   */
+  private read_attachments(tiles: any[], firstgid: number) {
     tiles.forEach((tile) => {
       const id_offset = parseInt(tile['@_id']);
       if (isNaN(id_offset)) {
@@ -276,7 +289,6 @@ class TmxMap implements ServerMap {
         TileAttachment[]
       >();
       this.attachments.set(tileid, attachment_types);
-      this.sprites.set(tileid, this.get_tile_image(tileid, tileset_obj));
 
       const objectgroup: any[] = tile['objectgroup'] || [];
       objectgroup.forEach((group) => {
