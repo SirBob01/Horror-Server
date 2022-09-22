@@ -196,13 +196,11 @@ class Game {
    */
   public broadcast() {
     this.players.forEach((player) => {
-      if (!player.world) return;
-      player.socket.emit('broadcast', {
-        entities: player.world.entities,
-        particles: player.world.particles,
-        lights: player.world.lights,
-        sounds: player.world.sounds,
-      });
+      if (!player.world || !player.entity) return;
+      player.socket.volatile.emit(
+        'broadcast',
+        player.world.get_socket_data(player.entity.id)
+      );
     });
   }
 

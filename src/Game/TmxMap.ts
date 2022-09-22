@@ -581,27 +581,15 @@ class TmxMap implements ServerMap {
       const buffer = readFileSync(`${this.directory}/${tileset.imagefile}`);
       tilesets.push([tileset.imagefile, buffer]);
     });
-
-    const attachments: [Tile, [TileAttachment['type'], TileAttachment[]][]][] = [];
+    const attachments: [Tile, [TileAttachment['type'], TileAttachment[]][]][] =
+      [];
     this.attachments.forEach((mapping, tile) => {
-      const list: [TileAttachment['type'], TileAttachment[]][] = [];
-      mapping.forEach((objects, type) => {
-        list.push([type, objects]);
-      });
-      attachments.push([tile, list]);
+      attachments.push([tile, [...mapping.entries()]]);
     });
+    const sprites = [...this.sprites.entries()];
+    const layers = [...this.layers.entries()];
 
-    const sprites: [Tile, TileImage][] = [];
-    this.sprites.forEach((image, tile) => {
-      sprites.push([tile, image]);
-    });
-
-    const layers: [Layer, LayerTiles][] = [];
-    this.layers.forEach((layer, type) => {
-      layers.push([type, layer]);
-    });
-
-    const data: WorldMapSocketData = {
+    return {
       size: this.size,
       tilesize: this.tilesize,
       tilesets,
@@ -610,8 +598,7 @@ class TmxMap implements ServerMap {
       layers,
       outdoors: this.outdoors,
       raining: this.raining,
-    };
-    return data;
+    } as WorldMapSocketData;
   }
 }
 

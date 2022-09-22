@@ -88,7 +88,7 @@ class Server {
 
       // Handle input events
       socket.on('input', (event) => {
-        player.entity?.handle_input(event)
+        player.entity?.handle_input(event);
       });
 
       // Kicking a player
