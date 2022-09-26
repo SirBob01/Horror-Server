@@ -1,3 +1,4 @@
+import { randrange } from 'dynamojs-engine';
 import {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -6,6 +7,7 @@ import {
   LobbySocketData,
   ServerMap,
   Human,
+  Monster,
 } from 'horror-simulation';
 import { Socket } from 'socket.io';
 import { Player } from './Player';
@@ -164,14 +166,19 @@ class Game {
     }
 
     // Associate each player with an entity and add them to the world
-    this.players.forEach((player) => {
+    const monster_index = Math.floor(randrange(0, this.players.length));
+    this.players.forEach((player, index) => {
       const initial_world = this.worlds.get(this.initial_map);
       if (!initial_world) return;
 
       const initial_spawn = initial_world.map.get_spawns().get('0');
       if (!initial_spawn) return;
 
-      player.entity = new Human(initial_spawn.center.x, initial_spawn.center.y);
+      if (monster_index === index) {
+        player.entity = new Monster(initial_spawn.center.x, initial_spawn.center.y);
+      } else {
+        player.entity = new Human(initial_spawn.center.x, initial_spawn.center.y);
+      }
       player.world = initial_world;
       initial_world.add_entity(player.entity);
     });
