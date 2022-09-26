@@ -51,6 +51,7 @@ function generate_random_name() {
 class Player {
   socket: Socket<ClientToServerEvents, ServerToClientEvents>;
   name: string;
+  last_seq: number;
 
   game: Game | null;
   entity: (Entity & Controllable) | null;
@@ -59,6 +60,8 @@ class Player {
   constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
     this.name = generate_random_name();
     this.socket = socket;
+    this.last_seq = 0;
+
     this.game = null;
     this.entity = null;
     this.world = null;

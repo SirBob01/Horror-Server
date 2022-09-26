@@ -87,9 +87,12 @@ class Server {
       });
 
       // Handle input events
-      socket.on('input', (events) => {
-        for (const event of events) {
-          player.entity?.handle_input(event);
+      socket.on('input', (state) => {
+        if (player.last_seq < state.seq) {
+          player.last_seq = state.seq;
+          for (const input of state.input) {
+            player.entity?.handle_input(input);
+          }  
         }
       });
 

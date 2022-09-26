@@ -22,6 +22,7 @@ class Game {
   players: Player[];
   running: boolean;
   last_disconnect: number;
+  state_seq: number;
   initial_map: string;
 
   worlds: Map<string, World>;
@@ -32,6 +33,7 @@ class Game {
     this.players = [];
     this.running = false;
     this.last_disconnect = Date.now();
+    this.state_seq = 0;
     this.initial_map = 'TestMap.tmx';
 
     this.worlds = new Map();
@@ -202,11 +204,12 @@ class Game {
    * Broadcast players the relevant game state
    */
   public broadcast() {
+    this.state_seq++;
     this.players.forEach((player) => {
       if (!player.world || !player.entity) return;
       player.socket.volatile.emit(
         'broadcast',
-        player.world.get_socket_data(player.entity.id)
+        player.world.get_socket_data(player.entity.id, this.state_seq)
       );
     });
   }
