@@ -34,5 +34,5 @@ const callback = (elapsed: number) => {
 };
 setImmediate(() => callback(Date.now()));
 
-// Broadcast game state at 15 fps
-setInterval(() => server.broadcast(), 1000.0 / 15.0);
+// Broadcast game state 10 times a second
+setInterval(() => server.broadcast(), 1000.0 / 10.0);
