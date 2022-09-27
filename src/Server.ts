@@ -120,10 +120,10 @@ class Server {
    */
   update(delta: number) {
     this.games.forEach((game, key) => {
-      // A game can exist for up to 1 hour after everyone has left
+      // A non-running game can exist for up to 1 hour after everyone has left
       if (
         game.players.length === 0 &&
-        Date.now() - game.last_disconnect > 1000 * 60 * 60
+        (game.running || Date.now() - game.last_disconnect > 1000 * 60 * 60)
       ) {
         this.games.delete(key);
       } else if (game.running) {
