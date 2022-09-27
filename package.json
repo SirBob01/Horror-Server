@@ -3,9 +3,9 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dynamojs-engine": "^1.7.0",
-    "horror-simulation": "git+ssh://git@github.com:SirBob01/Horror-Simulation.git#c033fac3bf6479c17c05c91c28deaae42337c886",
     "express": "^4.18.1",
     "fast-xml-parser": "^4.0.10",
+    "horror-simulation": "git+ssh://git@github.com:SirBob01/Horror-Simulation.git#c033fac3bf6479c17c05c91c28deaae42337c886",
     "nodemon": "^2.0.19",
     "socket.io": "^4.5.1",
     "ts-node": "^10.9.1",
