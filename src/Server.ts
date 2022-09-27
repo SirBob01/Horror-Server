@@ -1,7 +1,6 @@
 import { Server as SocketServer } from 'socket.io';
 import http from 'http';
 import { Game, Player } from './Game';
-import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import { ClientToServerEvents, ServerToClientEvents } from 'horror-simulation';
 
 /**
@@ -21,14 +20,8 @@ const generate_random_string = (length: number) => {
 };
 
 class Server {
-  private io: SocketServer<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    DefaultEventsMap
-  >;
-
+  private io: SocketServer<ClientToServerEvents, ServerToClientEvents>;
   private players: Map<string, Player>;
-
   private games: Map<string, Game>;
 
   /**
@@ -86,16 +79,6 @@ class Server {
         player.game?.send_lobby_data();
       });
 
-      // Handle input events
-      socket.on('input', (state) => {
-        if (player.last_seq < state.seq) {
-          player.last_seq = state.seq;
-          for (const input of state.input) {
-            player.entity?.handle_input(input);
-          }  
-        }
-      });
-
       // Kicking a player
       socket.on('kick', (id) => {
         const target = this.players.get(id);
@@ -122,7 +105,7 @@ class Server {
   /**
    * Broadcast the game data to its member players
    */
-  public broadcast() {
+  broadcast() {
     this.games.forEach((game) => {
       if (game.running) {
         game.broadcast();
@@ -135,7 +118,7 @@ class Server {
    *
    * @param delta {ms}
    */
-  public update(delta: number) {
+  update(delta: number) {
     this.games.forEach((game, key) => {
       // A game can exist for up to 1 hour after everyone has left
       if (

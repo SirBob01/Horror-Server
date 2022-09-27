@@ -18,23 +18,23 @@ import { TmxMap } from './TmxMap';
  */
 class Game {
   key: string;
+  initial_map: string;
+  running: boolean;
+
   host: Socket<ClientToServerEvents, ServerToClientEvents>;
   players: Player[];
-  running: boolean;
   last_disconnect: number;
-  state_seq: number;
-  initial_map: string;
 
   worlds: Map<string, World>;
 
   constructor(key: string, host: Socket) {
     this.key = key;
+    this.initial_map = 'TestMap.tmx';
+    this.running = false;
+
     this.host = host;
     this.players = [];
-    this.running = false;
     this.last_disconnect = Date.now();
-    this.state_seq = 0;
-    this.initial_map = 'TestMap.tmx';
 
     this.worlds = new Map();
 
@@ -44,7 +44,7 @@ class Game {
   /**
    * Handle host input
    */
-  public handle_host_input() {
+  handle_host_input() {
     this.host.on('start', () => {
       if (!this.running) {
         this.generate();
@@ -62,9 +62,17 @@ class Game {
    *
    * @param player
    */
-  public join(player: Player) {
+  join(player: Player) {
     this.players.push(player);
     player.game = this;
+
+    // Attach input listener
+    player.socket.on('input', (state) => {
+      if (player.last_seq < state.seq && this.running) {
+        player.last_seq = state.seq;
+        player.input_events.push(...state.input);
+      }
+    });
   }
 
   /**
@@ -72,42 +80,34 @@ class Game {
    *
    * @param id
    */
-  public disconnect(id: string) {
-    let new_host = false;
+  disconnect(id: string) {
+    const index = this.players.findIndex((player) => player.socket.id === id);
+    if (index < 0) return;
 
-    for (let i = 0; i < this.players.length; i++) {
-      const player = this.players[i];
-
-      if (player.socket.id === id) {
-        this.players.splice(i, 1);
-        player.game = null;
-        this.worlds.forEach((world) => {
-          if (player.entity) {
-            world.remove_entity(player.entity);
-          }
-        });
-
-        // This guy was the host, so now we need a new one
-        if (player.socket.id === this.host.id) {
-          new_host = true;
-        }
-        break;
-      }
+    // Remove the player entity from the world
+    const player = this.players[index];
+    if (player.world && player.entity) {
+      player.world.remove_entity(player.entity);
     }
+    this.players.splice(index, 1);
 
-    // Host left, get a new host
-    if (new_host && this.players.length) {
+    // Detach socket listeners
+    player.socket.removeAllListeners('start');
+    player.socket.removeAllListeners('stop');
+    player.socket.removeAllListeners('input');
+
+    // Change the host
+    if (this.host.id === id && this.players.length > 0) {
       this.host = this.players[0].socket;
       this.handle_host_input();
     }
-
     this.last_disconnect = Date.now();
   }
 
   /**
    * Send lobby information to the players
    */
-  public send_lobby_data() {
+  send_lobby_data() {
     const players: PlayerSocketData[] = this.players.map((player) => {
       return {
         id: player.socket.id,
@@ -128,7 +128,7 @@ class Game {
   /**
    * Generate all the maps for the current game starting from the initial map
    */
-  public generate() {
+  generate() {
     const prefix = './maps/test_map/';
 
     const visited = new Set<string>();
@@ -177,9 +177,15 @@ class Game {
       if (!initial_spawn) return;
 
       if (monster_index === index) {
-        player.entity = new Monster(initial_spawn.center.x, initial_spawn.center.y);
+        player.entity = new Monster(
+          initial_spawn.center.x,
+          initial_spawn.center.y
+        );
       } else {
-        player.entity = new Human(initial_spawn.center.x, initial_spawn.center.y);
+        player.entity = new Human(
+          initial_spawn.center.x,
+          initial_spawn.center.y
+        );
       }
       player.world = initial_world;
       initial_world.add_entity(player.entity);
@@ -189,7 +195,7 @@ class Game {
   /**
    * Send initial data to member players
    */
-  public send_start_data() {
+  send_start_data() {
     const key = this.key;
     this.players.forEach((player) => {
       const map = this.worlds.get(this.initial_map)?.map as ServerMap;
@@ -203,14 +209,15 @@ class Game {
   /**
    * Broadcast players the relevant game state
    */
-  public broadcast() {
-    this.state_seq++;
+  broadcast() {
     this.players.forEach((player) => {
-      if (!player.world || !player.entity) return;
-      player.socket.volatile.emit(
-        'broadcast',
-        player.world.get_socket_data(player.entity.id, this.state_seq)
-      );
+      const { socket, world, entity } = player;
+      if (world && entity) {
+        socket.volatile.emit(
+          'broadcast',
+          world.get_socket_data(entity.id, Date.now())
+        );
+      }
     });
   }
 
@@ -219,7 +226,16 @@ class Game {
    *
    * @param delta (ms)
    */
-  public update(delta: number) {
+  update(delta: number) {
+    // Handle buffered player input
+    this.players.forEach((player) => {
+      for (const input of player.input_events) {
+        player.entity?.handle_input(input);
+      }
+      player.input_events = [];
+    });
+
+    // Run the simulation tick
     this.worlds.forEach((world) => {
       world.update(delta);
     });

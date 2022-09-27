@@ -4,6 +4,7 @@ import {
   ClientToServerEvents,
   Controllable,
   Entity,
+  InputEvent,
   ServerToClientEvents,
   World,
 } from 'horror-simulation';
@@ -51,6 +52,7 @@ function generate_random_name() {
 class Player {
   socket: Socket<ClientToServerEvents, ServerToClientEvents>;
   name: string;
+  input_events: InputEvent[];
   last_seq: number;
 
   game: Game | null;
@@ -60,6 +62,7 @@ class Player {
   constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
     this.name = generate_random_name();
     this.socket = socket;
+    this.input_events = [];
     this.last_seq = 0;
 
     this.game = null;
