@@ -1,26 +1,8 @@
-import express from 'express';
-import http from 'http';
-import cors from 'cors';
 import { Server } from './Server';
 import { clamp } from 'dynamojs-engine';
 
-const app = express();
-const httpServer = http.createServer(app);
-
-// Middleware
-app.use(cors());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// Run the server
-const port = 3200;
-httpServer.listen(port, () => {
-  // eslint-disable-next-line
-  console.log(`Listening on port ${port}`);
-});
-
 // Run game logic
-const server = new Server(httpServer);
+const server = new Server(8080);
 
 // Update the server simulations at full capacity
 let lastTime = 0;
