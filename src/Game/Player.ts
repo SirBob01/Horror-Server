@@ -1,20 +1,21 @@
-import { Socket } from 'socket.io';
 import { Game } from './Game';
 import {
+  NetworkChannels,
   ClientToServerEvents,
+  ServerToClientEvents,
   Controllable,
   Entity,
   InputEvent,
-  ServerToClientEvents,
   World,
 } from 'horror-simulation';
+import Connection from 'dynamojs-net';
 
 /**
  * Generate a random name from the name word bank
  *
  * @returns new name
  */
-function generate_random_name() {
+function generateRandomName() {
   const names = [
     'Dynamo',
     'Iron',
@@ -50,20 +51,35 @@ function generate_random_name() {
  * Represents a player in the game
  */
 class Player {
-  socket: Socket<ClientToServerEvents, ServerToClientEvents>;
+  id: string;
+  connection: Connection<
+    NetworkChannels,
+    ClientToServerEvents,
+    ServerToClientEvents
+  >;
+
   name: string;
-  input_events: InputEvent[];
-  last_seq: number;
+  inputEvents: InputEvent[];
+  lastSeq: number;
 
   game: Game | null;
   entity: (Entity & Controllable) | null;
   world: World | null;
 
-  constructor(socket: Socket<ClientToServerEvents, ServerToClientEvents>) {
-    this.name = generate_random_name();
-    this.socket = socket;
-    this.input_events = [];
-    this.last_seq = 0;
+  constructor(
+    id: string,
+    connection: Connection<
+      NetworkChannels,
+      ClientToServerEvents,
+      ServerToClientEvents
+    >
+  ) {
+    this.id = id;
+    this.connection = connection;
+
+    this.name = generateRandomName();
+    this.inputEvents = [];
+    this.lastSeq = 0;
 
     this.game = null;
     this.entity = null;

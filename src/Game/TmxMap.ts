@@ -56,13 +56,13 @@ function makeAttachment<Type extends TileAttachment['type']>(
   } else if (type === 'Collider') {
     return { type, rect };
   } else if (type === 'Exit') {
-    const target_map = fields.get('targetmap') || '.';
-    const target_spawn_id = fields.get('spawn') || '0';
+    const targetMap = fields.get('targetmap') || '.';
+    const targetSpawnId = fields.get('spawn') || '0';
     return {
       type,
       rect,
-      target_map,
-      target_spawn_id,
+      targetMap,
+      targetSpawnId,
     };
   } else if (type === 'Light Source') {
     const [r, g, b] = (fields.get('color') || '255,255,255')
@@ -73,7 +73,7 @@ function makeAttachment<Type extends TileAttachment['type']>(
       .map(parseFloat);
     const color = new Color(r, g, b);
     const radius = parseFloat(fields.get('radius') || '100');
-    const half_angle = parseFloat(
+    const halfAngle = parseFloat(
       fields.get('half-angle') || '3.141592653589793'
     );
     const direction = new Vec2D(x, y).unit();
@@ -82,7 +82,7 @@ function makeAttachment<Type extends TileAttachment['type']>(
       rect,
       color,
       radius,
-      half_angle,
+      halfAngle,
       direction,
     };
   } else if (type === 'Occluder') {
@@ -158,7 +158,7 @@ class TmxMap implements ServerMap {
     this.raining = true;
 
     const buffer = readFileSync(file);
-    this.parse_tmx(this.parser.parse(buffer));
+    this.parseTmx(this.parser.parse(buffer));
   }
 
   /**
@@ -166,7 +166,7 @@ class TmxMap implements ServerMap {
    *
    * @param tmx
    */
-  private parse_tmx(tmx: any) {
+  private parseTmx(tmx: any) {
     const map = tmx['map'][0];
 
     // Tile dimensions
@@ -205,7 +205,7 @@ class TmxMap implements ServerMap {
 
       const buffer = readFileSync(`${this.directory}/${file}`);
       const tsx = this.parser.parse(buffer);
-      this.parse_tsx(tsx, firstgid);
+      this.parseTsx(tsx, firstgid);
     });
 
     // Parse each layer
@@ -213,12 +213,12 @@ class TmxMap implements ServerMap {
     layers.forEach((layer) => {
       const data = layer['data'][0]['#text'];
       const name = layer['@_name'];
-      this.layers.set(name as Layer, this.read_layer(data));
+      this.layers.set(name as Layer, this.readLayer(data));
     });
 
-    this.generate_navmesh();
-    this.generate_wallmesh();
-    this.generate_waypoints();
+    this.generateNavmesh();
+    this.generateWallmesh();
+    this.generateWaypoints();
   }
 
   /**
@@ -227,7 +227,7 @@ class TmxMap implements ServerMap {
    * @param tsx
    * @param firstgid
    */
-  private parse_tsx(tsx: any, firstgid: number) {
+  private parseTsx(tsx: any, firstgid: number) {
     const tileset = tsx['tileset'][0];
     const id = tileset['@_name'];
     if (!id) {
@@ -253,18 +253,18 @@ class TmxMap implements ServerMap {
       imagewidth / this.tilesize.x,
       imageheight / this.tilesize.y
     );
-    const tileset_obj = {
+    const tilesetObj = {
       firstgid,
       tilecount,
       gridsize,
       imagefile,
     };
-    this.tilesets.set(id, tileset_obj);
-    this.read_attachments(tileset['tile'], firstgid);
+    this.tilesets.set(id, tilesetObj);
+    this.readAttachments(tileset['tile'], firstgid);
 
     // Assign each tileid a (row, col) coordinate on the tileset
     for (let tileid = firstgid; tileid < firstgid + tilecount; tileid++) {
-      this.sprites.set(tileid, this.get_tile_image(tileid, tileset_obj));
+      this.sprites.set(tileid, this.getTileImage(tileid, tilesetObj));
     }
   }
 
@@ -272,23 +272,23 @@ class TmxMap implements ServerMap {
    * Read the attachments to tile objects
    *
    * @param tiles
-   * @param tileset_obj
+   * @param tilesetObj
    */
-  private read_attachments(tiles: any[], firstgid: number) {
+  private readAttachments(tiles: any[], firstgid: number) {
     tiles.forEach((tile) => {
-      const id_offset = parseInt(tile['@_id']);
-      if (isNaN(id_offset)) {
+      const idOffset = parseInt(tile['@_id']);
+      if (isNaN(idOffset)) {
         throw new Error(
           'TSX file may be corrupted! Tile does not have an `id` field'
         );
       }
 
-      const tileid = firstgid + id_offset;
-      const attachment_types = new Map<
+      const tileid = firstgid + idOffset;
+      const attachmentTypes = new Map<
         TileAttachment['type'],
         TileAttachment[]
       >();
-      this.attachments.set(tileid, attachment_types);
+      this.attachments.set(tileid, attachmentTypes);
 
       const objectgroup: any[] = tile['objectgroup'] || [];
       objectgroup.forEach((group) => {
@@ -300,8 +300,8 @@ class TmxMap implements ServerMap {
             );
           }
           const type = object['@_type'] as TileAttachment['type'];
-          if (!attachment_types.has(type)) {
-            attachment_types.set(type, []);
+          if (!attachmentTypes.has(type)) {
+            attachmentTypes.set(type, []);
           }
 
           const x = parseInt(object['@_x']);
@@ -322,9 +322,9 @@ class TmxMap implements ServerMap {
 
           // Read custom properties for the attachment
           const fields = new Map<string, string>();
-          const properties_container: any[] = object['properties'];
-          if (properties_container) {
-            const properties: any[] = properties_container[0]['property'];
+          const propertiesContainer: any[] = object['properties'];
+          if (propertiesContainer) {
+            const properties: any[] = propertiesContainer[0]['property'];
             properties.forEach((property) => {
               const name = property['@_name'];
               const value = property['@_value'];
@@ -349,7 +349,7 @@ class TmxMap implements ServerMap {
    *
    * @param csv
    */
-  private read_layer(csv: string) {
+  private readLayer(csv: string) {
     const lines = csv.split('\n');
 
     const tiles = [];
@@ -376,11 +376,11 @@ class TmxMap implements ServerMap {
   /**
    * Generate the global navigation mesh of the map
    */
-  private generate_navmesh() {
+  private generateNavmesh() {
     for (let y = 0; y < this.size.y; y++) {
       const navrow = [];
       for (let x = 0; x < this.size.x; x++) {
-        let is_blocked = 0;
+        let isBlocked = 0;
         let stop = false;
         this.layers.forEach((layer) => {
           const gid = layer[y][x];
@@ -389,11 +389,11 @@ class TmxMap implements ServerMap {
             return;
           }
           if (obj.has('Collider')) {
-            is_blocked = 1;
+            isBlocked = 1;
             stop = true;
           }
         });
-        navrow.push(is_blocked);
+        navrow.push(isBlocked);
       }
       this.navmesh.push(navrow);
     }
@@ -402,12 +402,12 @@ class TmxMap implements ServerMap {
   /**
    * Generate the 2D map for walls (1 for wall, 0 for free space)
    */
-  private generate_wallmesh() {
+  private generateWallmesh() {
     // Walls are only found in the foreground, so yeah.
     for (let y = 0; y < this.size.y; y++) {
       const wallrow = [];
       for (let x = 0; x < this.size.x; x++) {
-        let is_blocked = 0;
+        let isBlocked = 0;
         const foreground = this.layers.get('Foreground');
         if (foreground === undefined) {
           throw new Error('Fatal error generating wallmesh.');
@@ -416,12 +416,12 @@ class TmxMap implements ServerMap {
         const gid = foreground[y][x];
         const obj = this.attachments.get(gid);
         if (obj === undefined) {
-          wallrow.push(is_blocked);
+          wallrow.push(isBlocked);
         } else {
           if (obj.has('Collider')) {
-            is_blocked = 1;
+            isBlocked = 1;
           }
-          wallrow.push(is_blocked);
+          wallrow.push(isBlocked);
         }
       }
       this.wallmesh.push(wallrow);
@@ -443,10 +443,10 @@ class TmxMap implements ServerMap {
    * OPTIMIZED algorithm?
    *  -
    */
-  private generate_waypoints() {
-    const sector_size = new Vec2D(5, 5);
-    for (let y = 0; y < this.size.y; y += sector_size.y) {
-      for (let x = 0; x < this.size.x; x += sector_size.x) {
+  private generateWaypoints() {
+    const sectorSize = new Vec2D(5, 5);
+    for (let y = 0; y < this.size.y; y += sectorSize.y) {
+      for (let x = 0; x < this.size.x; x += sectorSize.x) {
         if (this.navmesh[y][x] === 0) {
           this.waypoints.push(new Vec2D(x, y));
         }
@@ -457,7 +457,7 @@ class TmxMap implements ServerMap {
   /**
    * Get the sprite image associated with the tile
    */
-  private get_tile_image(tile: Tile, tileset: Tileset) {
+  private getTileImage(tile: Tile, tileset: Tileset) {
     const { firstgid, gridsize, imagefile } = tileset;
     const index = tile - firstgid + 1;
     const y = Math.ceil(index / gridsize.x) - 1;
@@ -476,12 +476,12 @@ class TmxMap implements ServerMap {
    * @param y
    * @param layer
    */
-  get_tile(x: number, y: number, layer: Layer) {
-    const layer_tiles = this.layers.get(layer);
-    if (layer_tiles === undefined) {
+  getTile(x: number, y: number, layer: Layer) {
+    const layerTiles = this.layers.get(layer);
+    if (layerTiles === undefined) {
       return 0;
     }
-    return layer_tiles[y][x];
+    return layerTiles[y][x];
   }
 
   /**
@@ -492,14 +492,14 @@ class TmxMap implements ServerMap {
    * @param layer Layer name (e.g., foreground, background, etc.)
    * @param type  Attachment type
    */
-  get_attachments<AttachmentType extends TileAttachment['type']>(
+  getAttachments<AttachmentType extends TileAttachment['type']>(
     x: number,
     y: number,
     layer: Layer,
     type: AttachmentType
   ) {
     // Get the list of attachments in world coordinates for a particular tile
-    const tile = this.get_tile(x, y, layer);
+    const tile = this.getTile(x, y, layer);
     if (!tile) {
       return [];
     }
@@ -525,15 +525,15 @@ class TmxMap implements ServerMap {
   /**
    * Get all static lights in the world
    */
-  get_lights() {
+  getLights() {
     const lights: Light[] = [];
     for (let x = 0; x < this.size.x; x++) {
       for (let y = 0; y < this.size.y; y++) {
-        this.layers.forEach((_, layer_name) => {
-          const attachments = this.get_attachments(
+        this.layers.forEach((_, layerName) => {
+          const attachments = this.getAttachments(
             x,
             y,
-            layer_name,
+            layerName,
             'Light Source'
           );
           for (const attachment of attachments) {
@@ -544,7 +544,7 @@ class TmxMap implements ServerMap {
                 attachment.radius,
                 attachment.color,
                 attachment.direction,
-                attachment.half_angle
+                attachment.halfAngle
               )
             );
           }
@@ -557,11 +557,11 @@ class TmxMap implements ServerMap {
   /**
    * Get spawn location bounding volumes
    */
-  get_spawns() {
+  getSpawns() {
     const spawns = new Map<string, AABB>();
     for (let x = 0; x < this.size.x; x++) {
       for (let y = 0; y < this.size.y; y++) {
-        const attachments = this.get_attachments(x, y, 'Background', 'Spawn');
+        const attachments = this.getAttachments(x, y, 'Background', 'Spawn');
         for (const attachment of attachments) {
           spawns.set(attachment.id, attachment.rect);
         }
@@ -573,11 +573,11 @@ class TmxMap implements ServerMap {
   /**
    * Get exits
    */
-  get_exits() {
+  getExits() {
     const exits: ExitAttachment[] = [];
     for (let x = 0; x < this.size.x; x++) {
       for (let y = 0; y < this.size.y; y++) {
-        const attachments = this.get_attachments(x, y, 'Background', 'Exit');
+        const attachments = this.getAttachments(x, y, 'Background', 'Exit');
         exits.push(...attachments);
       }
     }
@@ -587,7 +587,7 @@ class TmxMap implements ServerMap {
   /**
    * Get socket transferrable data for the client
    */
-  get_socket_data() {
+  getSocketData() {
     const tilesets: [string, Buffer][] = [];
     this.tilesets.forEach((tileset) => {
       const buffer = readFileSync(`${this.directory}/${tileset.imagefile}`);

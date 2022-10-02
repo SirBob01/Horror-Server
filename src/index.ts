@@ -5,7 +5,7 @@ import { Server } from './Server';
 import { clamp } from 'dynamojs-engine';
 
 const app = express();
-const http_server = http.createServer(app);
+const httpServer = http.createServer(app);
 
 // Middleware
 app.use(cors());
@@ -14,25 +14,25 @@ app.use(express.json());
 
 // Run the server
 const port = 3200;
-http_server.listen(port, () => {
+httpServer.listen(port, () => {
   // eslint-disable-next-line
   console.log(`Listening on port ${port}`);
 });
 
 // Run game logic
-const server = new Server(http_server);
+const server = new Server(httpServer);
 
 // Update the server simulations at full capacity
-let last_time = 0;
-const dt_cap = 100;
+let lastTime = 0;
+const dtCap = 100;
 const callback = (elapsed: number) => {
-  const dt = clamp(elapsed - last_time, 0, dt_cap);
-  last_time = elapsed;
+  const dt = clamp(elapsed - lastTime, 0, dtCap);
+  lastTime = elapsed;
   server.update(dt);
 
   setImmediate(() => callback(Date.now()));
 };
 setImmediate(() => callback(Date.now()));
 
-// Broadcast game state 10 times a second
-setInterval(() => server.broadcast(), 1000.0 / 10.0);
+// Broadcast game state 20 times a second
+setInterval(() => server.broadcast(), 1000.0 / 20.0);

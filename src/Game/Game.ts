@@ -1,7 +1,5 @@
 import { randrange } from 'dynamojs-engine';
 import {
-  ClientToServerEvents,
-  ServerToClientEvents,
   World,
   PlayerSocketData,
   LobbySocketData,
@@ -9,7 +7,6 @@ import {
   Human,
   Monster,
 } from 'horror-simulation';
-import { Socket } from 'socket.io';
 import { Player } from './Player';
 import { TmxMap } from './TmxMap';
 
@@ -18,41 +15,41 @@ import { TmxMap } from './TmxMap';
  */
 class Game {
   key: string;
-  initial_map: string;
+  initialMap: string;
   running: boolean;
 
-  host: Socket<ClientToServerEvents, ServerToClientEvents>;
+  host: Player;
   players: Player[];
-  last_disconnect: number;
+  lastDisconnect: number;
 
   worlds: Map<string, World>;
 
-  constructor(key: string, host: Socket) {
+  constructor(key: string, host: Player) {
     this.key = key;
-    this.initial_map = 'TestMap.tmx';
+    this.initialMap = 'TestMap.tmx';
     this.running = false;
 
     this.host = host;
     this.players = [];
-    this.last_disconnect = Date.now();
+    this.lastDisconnect = Date.now();
 
     this.worlds = new Map();
 
-    this.handle_host_input();
+    this.handleHostInput();
   }
 
   /**
    * Handle host input
    */
-  handle_host_input() {
-    this.host.on('start', () => {
+  handleHostInput() {
+    this.host.connection.on('admin', 'start', () => {
       if (!this.running) {
         this.generate();
-        this.send_start_data();
+        this.sendStartData();
         this.running = true;
       }
     });
-    this.host.on('stop', () => {
+    this.host.connection.on('admin', 'stop', () => {
       this.running = false;
     });
   }
@@ -67,10 +64,10 @@ class Game {
     player.game = this;
 
     // Attach input listener
-    player.socket.on('input', (state) => {
-      if (player.last_seq < state.seq && this.running) {
-        player.last_seq = state.seq;
-        player.input_events.push(...state.input);
+    player.connection.onAll('input', (state) => {
+      if (player.lastSeq < state.seq && this.running) {
+        player.lastSeq = state.seq;
+        player.inputEvents.push(...state.input);
       }
     });
   }
@@ -81,47 +78,47 @@ class Game {
    * @param id
    */
   disconnect(id: string) {
-    const index = this.players.findIndex((player) => player.socket.id === id);
+    const index = this.players.findIndex((player) => player.id === id);
     if (index < 0) return;
 
     // Remove the player entity from the world
     const player = this.players[index];
     if (player.world && player.entity) {
-      player.world.remove_entity(player.entity);
+      player.world.removeEntity(player.entity);
     }
     this.players.splice(index, 1);
 
     // Detach socket listeners
-    player.socket.removeAllListeners('start');
-    player.socket.removeAllListeners('stop');
-    player.socket.removeAllListeners('input');
+    player.connection.off('admin', 'start');
+    player.connection.off('admin', 'stop');
+    player.connection.off('admin', 'input');
 
     // Change the host
     if (this.host.id === id && this.players.length > 0) {
-      this.host = this.players[0].socket;
-      this.handle_host_input();
+      this.host = this.players[0];
+      this.handleHostInput();
     }
-    this.last_disconnect = Date.now();
+    this.lastDisconnect = Date.now();
   }
 
   /**
    * Send lobby information to the players
    */
-  send_lobby_data() {
+  sendLobbyData() {
     const players: PlayerSocketData[] = this.players.map((player) => {
       return {
-        id: player.socket.id,
+        id: player.id,
         name: player.name,
-        host: player.socket.id === this.host.id,
+        host: player.id === this.host.id,
       };
     });
     for (const player of this.players) {
       const data: LobbySocketData = {
         players,
-        player_id: player.socket.id,
-        player_name: player.name,
+        playerId: player.id,
+        playerName: player.name,
       };
-      player.socket.emit('lobby', data);
+      player.connection.emit('admin', 'lobby', data);
     }
   }
 
@@ -132,77 +129,74 @@ class Game {
     const prefix = './maps/test_map/';
 
     const visited = new Set<string>();
-    const queue = [this.initial_map];
+    const queue = [this.initialMap];
     while (queue.length) {
       const file = queue.pop();
       if (!file || file === '.') continue;
 
       const map = new TmxMap(prefix + file);
-      const world = new World(map, (entity, target_map, target_spawn) => {
-        const next_world = this.worlds.get(target_map);
-        if (!next_world) return;
+      const world = new World(map, (entity, targetMap, targetSpawn) => {
+        const nextWorld = this.worlds.get(targetMap);
+        if (!nextWorld) return;
 
-        const next_spawn = next_world.map.get_spawns().get(target_spawn);
-        if (!next_spawn) return;
+        const nextSpawn = nextWorld.map.getSpawns().get(targetSpawn);
+        if (!nextSpawn) return;
 
-        entity.center.x = next_spawn.center.x;
-        entity.center.y = next_spawn.center.y;
-        next_world.add_entity(entity);
+        entity.center.x = nextSpawn.center.x;
+        entity.center.y = nextSpawn.center.y;
+        nextWorld.addEntity(entity);
 
         // Signal to the relevant player to transition maps
         const player = this.players.find((player) => player.entity === entity);
-        const map_data = (next_world.map as ServerMap).get_socket_data();
-        player?.socket.emit('map_transition', {
-          map_data,
-          target_spawn,
+        const mapData = (nextWorld.map as ServerMap).getSocketData();
+        player?.connection.emit('admin', 'mapTransition', {
+          mapData,
+          targetSpawn,
         });
       });
       this.worlds.set(file, world);
 
       // Look into neighboring maps
-      for (const { target_map } of map.get_exits()) {
-        if (!visited.has(target_map)) {
-          queue.push(target_map);
+      for (const { targetMap } of map.getExits()) {
+        if (!visited.has(targetMap)) {
+          queue.push(targetMap);
         }
       }
     }
 
     // Associate each player with an entity and add them to the world
-    const monster_index = Math.floor(randrange(0, this.players.length));
+    const monsterIndex = Math.floor(randrange(0, this.players.length));
     this.players.forEach((player, index) => {
-      const initial_world = this.worlds.get(this.initial_map);
-      if (!initial_world) return;
+      const initialWorld = this.worlds.get(this.initialMap);
+      if (!initialWorld) return;
 
-      const initial_spawn = initial_world.map.get_spawns().get('0');
-      if (!initial_spawn) return;
+      const initialSpawn = initialWorld.map.getSpawns().get('0');
+      if (!initialSpawn) return;
 
-      if (monster_index === index) {
+      if (monsterIndex === index) {
         player.entity = new Monster(
-          initial_spawn.center.x,
-          initial_spawn.center.y
+          initialSpawn.center.x,
+          initialSpawn.center.y
         );
       } else {
-        player.entity = new Human(
-          initial_spawn.center.x,
-          initial_spawn.center.y
-        );
+        player.entity = new Human(initialSpawn.center.x, initialSpawn.center.y);
       }
-      player.world = initial_world;
-      initial_world.add_entity(player.entity);
+      player.world = initialWorld;
+      initialWorld.addEntity(player.entity);
     });
   }
 
   /**
    * Send initial data to member players
    */
-  send_start_data() {
+  sendStartData() {
     const key = this.key;
     this.players.forEach((player) => {
-      const map = this.worlds.get(this.initial_map)?.map as ServerMap;
+      const map = this.worlds.get(this.initialMap)?.map as ServerMap;
       if (!map) return;
 
-      const map_data = map.get_socket_data();
-      player.socket.emit('start', { key, map_data });
+      const mapData = map.getSocketData();
+      player.connection.emit('admin', 'start', { key, mapData });
     });
   }
 
@@ -211,11 +205,12 @@ class Game {
    */
   broadcast() {
     this.players.forEach((player) => {
-      const { socket, world, entity } = player;
+      const { connection, world, entity } = player;
       if (world && entity) {
-        socket.volatile.emit(
-          'broadcast',
-          world.get_socket_data(entity.id, Date.now())
+        connection.emit(
+          'state',
+          'broadcastState',
+          world.getSocketData(entity.id, Date.now())
         );
       }
     });
@@ -229,10 +224,10 @@ class Game {
   update(delta: number) {
     // Handle buffered player input
     this.players.forEach((player) => {
-      for (const input of player.input_events) {
-        player.entity?.handle_input(input);
+      for (const input of player.inputEvents) {
+        player.entity?.handleInput(input);
       }
-      player.input_events = [];
+      player.inputEvents = [];
     });
 
     // Run the simulation tick

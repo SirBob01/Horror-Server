@@ -1,7 +1,14 @@
-import { Server as SocketServer } from 'socket.io';
 import http from 'http';
+import socket from 'socket.io';
 import { Game, Player } from './Game';
-import { ClientToServerEvents, ServerToClientEvents } from 'horror-simulation';
+import Connection from 'dynamojs-net';
+import ServerSignaler from './ServerSignaler';
+import {
+  NetworkChannels,
+  channelConfigs,
+  ClientToServerEvents,
+  ServerToClientEvents,
+} from 'horror-simulation';
 
 /**
  * Generate a random string of a certain length
@@ -9,7 +16,7 @@ import { ClientToServerEvents, ServerToClientEvents } from 'horror-simulation';
  * @param length Length of the random string
  * @returns
  */
-const generate_random_string = (length: number) => {
+const generateRandomString = (length: number) => {
   const alphabet =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let string = '';
@@ -20,7 +27,6 @@ const generate_random_string = (length: number) => {
 };
 
 class Server {
-  private io: SocketServer<ClientToServerEvents, ServerToClientEvents>;
   private players: Map<string, Player>;
   private games: Map<string, Game>;
 
@@ -28,77 +34,92 @@ class Server {
    * Server instance that coordinates the simulation of multiple concurrent games
    */
   constructor(server: http.Server) {
-    this.io = new SocketServer(server, {
-      maxHttpBufferSize: 1e9,
+    this.players = new Map();
+    this.games = new Map(); // Users are grouped into lobbies that play games
+
+    // Handle the RTC signaling process
+    const io = new socket.Server(server, {
       cors: {
         origin: '*',
       },
     });
-    this.players = new Map();
-    this.games = new Map(); // Users are grouped into lobbies that play games
+    io.on('connection', (socket) => {
+      const signaler = new ServerSignaler(socket);
+      Connection.createRecv<
+        NetworkChannels,
+        ClientToServerEvents,
+        ServerToClientEvents
+      >(signaler, {
+        iceServers: [
+          { urls: 'stun:stun.stunprotocol.org:3478' },
+          { urls: 'stun:stun.l.google.com:19302' },
+        ],
+        channels: channelConfigs,
+      })
+        .then((connection) => {
+          const player = new Player(socket.id, connection);
+          this.players.set(socket.id, player);
 
-    // Handle the initial connection
-    this.io.on('connection', (socket) => {
-      const player = new Player(socket);
-      this.players.set(socket.id, player);
+          // Create a new lobby
+          connection.on('admin', 'create', () => {
+            const keylen = 6;
+            let key = generateRandomString(keylen);
+            while (key in this.games) {
+              key = generateRandomString(keylen);
+            }
+            const game = new Game(key, player);
+            game.join(player);
+            game.sendLobbyData();
+            this.games.set(key, game);
 
-      // Create a new lobby
-      socket.on('create', (callback) => {
-        const keylen = 6;
-        let key = generate_random_string(keylen);
-        while (key in this.games) {
-          key = generate_random_string(keylen);
-        }
-        const game = new Game(key, player.socket);
-        game.join(player);
-        game.send_lobby_data();
-        this.games.set(key, game);
+            // Share the key with friends to join lobby
+            connection.emit('admin', 'createResponse', key);
+          });
 
-        // Share the key with friends to join lobby
-        callback(key);
-      });
+          // Join an existing game
+          connection.on('admin', 'join', (key) => {
+            const game = this.games.get(key);
+            if (game && !game.running) {
+              const joined = game.players
+                .map((player) => player.id)
+                .includes(socket.id);
+              if (!joined) game.join(player);
+              game.sendLobbyData();
+              connection.emit('admin', 'joinResponse', true);
+            } else {
+              connection.emit('admin', 'joinResponse', false);
+            }
+          });
 
-      // Join an existing game
-      socket.on('join', (key, callback) => {
-        const game = this.games.get(key);
-        if (game && !game.running) {
-          const joined = game.players
-            .map((player) => player.socket.id)
-            .includes(socket.id);
-          if (!joined) game.join(player);
-          game.send_lobby_data();
-          callback(true);
-        } else {
-          callback(false);
-        }
-      });
+          // Set player name
+          connection.on('admin', 'setName', (name) => {
+            player.name = name;
+            player.game?.sendLobbyData();
+          });
 
-      // Set player name
-      socket.on('setname', (name) => {
-        player.name = name;
-        player.game?.send_lobby_data();
-      });
+          // Kicking a player
+          connection.on('admin', 'kick', (id) => {
+            const target = this.players.get(id);
+            if (target && target.game) {
+              const game = target.game;
+              game.disconnect(id);
+              game.sendLobbyData();
+              target.connection.emit('admin', 'kick');
+            }
+          });
 
-      // Kicking a player
-      socket.on('kick', (id) => {
-        const target = this.players.get(id);
-        if (target && target.game) {
-          const game = target.game;
-          game.disconnect(id);
-          game.send_lobby_data();
-          target.socket.emit('kick');
-        }
-      });
-
-      // Handle disconnect
-      socket.on('disconnect', () => {
-        if (player.game) {
-          const game = player.game;
-          game.disconnect(socket.id);
-          game.send_lobby_data();
-        }
-        this.players.delete(socket.id);
-      });
+          // Handle disconnect
+          connection.addDisconnectHandler(() => {
+            if (player.game) {
+              const game = player.game;
+              game.disconnect(socket.id);
+              game.sendLobbyData();
+            }
+            this.players.delete(socket.id);
+          });
+        })
+        // eslint-disable-next-line no-console
+        .catch(console.error);
     });
   }
 
@@ -123,7 +144,7 @@ class Server {
       // A non-running game can exist for up to 1 hour after everyone has left
       if (
         game.players.length === 0 &&
-        (game.running || Date.now() - game.last_disconnect > 1000 * 60 * 60)
+        (game.running || Date.now() - game.lastDisconnect > 1000 * 60 * 60)
       ) {
         this.games.delete(key);
       } else if (game.running) {
