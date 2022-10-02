@@ -1,24 +1,27 @@
 import { Signaler, SignalingMessage } from 'dynamojs-net';
-import { Socket } from 'socket.io';
+import WebSocket from 'ws';
 
 class ServerSignaler implements Signaler {
-  private socket: Socket;
+  private socket: WebSocket;
 
   /**
    * Create a server signaler instance
    *
    * @param socket WebSocket instance
    */
-  constructor(socket: Socket) {
+  constructor(socket: WebSocket) {
     this.socket = socket;
   }
 
   send(message: SignalingMessage) {
-    this.socket.emit('signal', message);
+    this.socket.send(JSON.stringify(message));
   }
 
   listen(handler: (message: SignalingMessage) => void) {
-    this.socket.on('signal', handler);
+    this.socket.on('message', (data) => {
+      const message = JSON.parse(data.toString());
+      handler(message);
+    });
   }
 }
 

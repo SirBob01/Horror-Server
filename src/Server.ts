@@ -1,7 +1,8 @@
 import http from 'http';
-import socket from 'socket.io';
-import { Game, Player } from './Game';
+import WebSocket from 'ws';
 import Connection from 'dynamojs-net';
+import { v4 as uuid } from 'uuid';
+import { Game, Player } from './Game';
 import ServerSignaler from './ServerSignaler';
 import {
   NetworkChannels,
@@ -38,11 +39,7 @@ class Server {
     this.games = new Map(); // Users are grouped into lobbies that play games
 
     // Handle the RTC signaling process
-    const io = new socket.Server(server, {
-      cors: {
-        origin: '*',
-      },
-    });
+    const io = new WebSocket.Server({ server });
     io.on('connection', (socket) => {
       const signaler = new ServerSignaler(socket);
       Connection.createRecv<
@@ -57,8 +54,9 @@ class Server {
         channels: channelConfigs,
       })
         .then((connection) => {
-          const player = new Player(socket.id, connection);
-          this.players.set(socket.id, player);
+          const id = uuid();
+          const player = new Player(id, connection);
+          this.players.set(id, player);
 
           // Create a new lobby
           connection.on('admin', 'create', () => {
@@ -82,7 +80,7 @@ class Server {
             if (game && !game.running) {
               const joined = game.players
                 .map((player) => player.id)
-                .includes(socket.id);
+                .includes(id);
               if (!joined) game.join(player);
               game.sendLobbyData();
               connection.emit('admin', 'joinResponse', true);
@@ -112,10 +110,10 @@ class Server {
           connection.addDisconnectHandler(() => {
             if (player.game) {
               const game = player.game;
-              game.disconnect(socket.id);
+              game.disconnect(id);
               game.sendLobbyData();
             }
-            this.players.delete(socket.id);
+            this.players.delete(id);
           });
         })
         // eslint-disable-next-line no-console
