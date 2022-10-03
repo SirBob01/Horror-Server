@@ -64,10 +64,16 @@ class Game {
     player.game = this;
 
     // Attach input listener
-    player.connection.onAll('input', (state) => {
+    player.connection.on('admin', 'input', (state) => {
       if (player.lastSeq < state.seq && this.running) {
         player.lastSeq = state.seq;
-        player.inputEvents.push(...state.input);
+        player.deltaInput.push(...state.input);
+      }
+    });
+    player.connection.on('state', 'input', (state) => {
+      if (player.lastSeq < state.seq && this.running) {
+        player.lastSeq = state.seq;
+        player.liveInput.push(...state.input);
       }
     });
   }
@@ -92,6 +98,7 @@ class Game {
     player.connection.off('admin', 'start');
     player.connection.off('admin', 'stop');
     player.connection.off('admin', 'input');
+    player.connection.off('state', 'input');
 
     // Change the host
     if (this.host.id === id && this.players.length > 0) {
@@ -224,10 +231,27 @@ class Game {
   update(delta: number) {
     // Handle buffered player input
     this.players.forEach((player) => {
-      for (const input of player.inputEvents) {
-        player.entity?.handleInput(input);
+      const { liveInput, deltaInput, entity } = player;
+      const inputEvents = liveInput.concat(deltaInput);
+      inputEvents.forEach((input) => {
+        entity?.handleInput(input);
+      });
+
+      // Broadcast input events so other clients can simulate locally
+      if (deltaInput.length > 0 && player.entity) {
+        this.players.forEach((other) => {
+          if (other !== player && player.entity) {
+            other.connection.emit('admin', 'broadcastInput', player.entity.id, {
+              seq: Date.now(),
+              input: deltaInput,
+            });
+          }
+        });
       }
-      player.inputEvents = [];
+
+      // Clear input buffers
+      liveInput.splice(0, liveInput.length);
+      deltaInput.splice(0, deltaInput.length);
     });
 
     // Run the simulation tick

@@ -59,7 +59,8 @@ class Player {
   >;
 
   name: string;
-  inputEvents: InputEvent[];
+  liveInput: InputEvent[]; // Mouse movement
+  deltaInput: InputEvent[]; // Button presses
   lastSeq: number;
 
   game: Game | null;
@@ -78,7 +79,8 @@ class Player {
     this.connection = connection;
 
     this.name = generateRandomName();
-    this.inputEvents = [];
+    this.liveInput = [];
+    this.deltaInput = [];
     this.lastSeq = 0;
 
     this.game = null;
