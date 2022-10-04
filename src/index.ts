@@ -2,7 +2,8 @@ import { Server } from './Server';
 import { clamp } from 'dynamojs-engine';
 
 // Run game logic
-const server = new Server(3264);
+const port = process.env.PORT || '3264';
+const server = new Server(parseInt(port));
 
 // Update the server simulations at full capacity
 let lastTime = 0;
