@@ -1,5 +1,9 @@
 {
   "name": "horror-server",
+  "engines": {
+    "node": "18.8.0"
+  },
+  "engineStrict": true,
   "dependencies": {
     "@types/uuid": "^8.3.4",
     "@types/ws": "^8.5.3",
