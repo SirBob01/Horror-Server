@@ -33,16 +33,12 @@ class Server {
   /**
    * Server instance that coordinates the simulation of multiple concurrent games
    */
-  constructor(port: number) {
+  constructor(wss: WebSocket.Server) {
     this.players = new Map();
     this.games = new Map(); // Users are grouped into lobbies that play games
 
     // WebSocket server to facilitate the WebRTC signaling process
-    const io = new WebSocket.Server({ port });
-
-    // eslint-disable-next-line no-console
-    console.log(`Signaling service on port ${port}`);
-    io.on('connection', (socket) => {
+    wss.on('connection', (socket) => {
       const signaler = new ServerSignaler(socket);
       Connection.createRecv<
         NetworkChannels,
