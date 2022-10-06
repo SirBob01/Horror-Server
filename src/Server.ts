@@ -14,7 +14,6 @@ import {
  * Generate a random string of a certain length
  *
  * @param length Length of the random string
- * @returns
  */
 const generateRandomString = (length: number) => {
   const alphabet =
@@ -32,6 +31,8 @@ class Server {
 
   /**
    * Server instance that coordinates the simulation of multiple concurrent games
+   * 
+   * @param wss WebSocket server
    */
   constructor(wss: WebSocket.Server) {
     this.players = new Map();
@@ -63,7 +64,7 @@ class Server {
             while (key in this.games) {
               key = generateRandomString(keylen);
             }
-            const game = new Game(key, player);
+            const game = new Game(key);
             game.join(player);
             game.sendLobbyData();
             this.games.set(key, game);
@@ -133,15 +134,16 @@ class Server {
   /**
    * Execute simulation logic
    *
-   * @param delta {ms}
+   * @param delta
    */
   update(delta: number) {
     this.games.forEach((game, key) => {
       // A non-running game can exist for up to 1 hour after everyone has left
       if (
         game.players.length === 0 &&
-        (game.running || Date.now() - game.lastDisconnect > 1000 * 60 * 60)
+        (game.running || Date.now() - game.lastDisconnect > 1000 * 60 * 10)
       ) {
+        console.log(`Stopping game lobby ${key}`);
         this.games.delete(key);
       } else if (game.running) {
         game.update(delta);

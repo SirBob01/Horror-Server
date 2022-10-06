@@ -23,7 +23,6 @@ httpServer.listen(port);
 const wss = new WebSocket.Server({ server: httpServer });
 const server = new Server(wss);
 
-// eslint-disable-next-line no-console
 console.log(`Hosting server on port ${port}`);
 
 // Update the server simulations at full capacity

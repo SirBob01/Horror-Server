@@ -18,38 +18,36 @@ class Game {
   initialMap: string;
   running: boolean;
 
-  host: Player;
+  host: Player | null;
   players: Player[];
   lastDisconnect: number;
 
   worlds: Map<string, World>;
 
-  constructor(key: string, host: Player) {
+  constructor(key: string) {
     this.key = key;
     this.initialMap = 'TestMap.tmx';
     this.running = false;
 
-    this.host = host;
+    this.host = null;
     this.players = [];
     this.lastDisconnect = Date.now();
 
     this.worlds = new Map();
-
-    this.handleHostInput();
   }
 
   /**
    * Handle host input
    */
   handleHostInput() {
-    this.host.connection.on('admin', 'start', () => {
+    this.host?.connection.on('admin', 'start', () => {
       if (!this.running) {
         this.generate();
         this.sendStartData();
         this.running = true;
       }
     });
-    this.host.connection.on('admin', 'stop', () => {
+    this.host?.connection.on('admin', 'stop', () => {
       this.running = false;
     });
   }
@@ -63,7 +61,7 @@ class Game {
     this.players.push(player);
     player.game = this;
 
-    // Attach input listener
+    // Attach input listeners
     player.connection.on('admin', 'input', (state) => {
       if (player.lastSeq < state.seq && this.running) {
         player.lastSeq = state.seq;
@@ -76,6 +74,11 @@ class Game {
         player.liveInput.push(...state.input);
       }
     });
+
+    if (!this.host) {
+      this.host = player;
+      this.handleHostInput();
+    }
   }
 
   /**
@@ -101,9 +104,13 @@ class Game {
     player.connection.off('state', 'input');
 
     // Change the host
-    if (this.host.id === id && this.players.length > 0) {
-      this.host = this.players[0];
-      this.handleHostInput();
+    if (this.host?.id === id) {
+      if (this.players.length > 0) {
+        this.host = this.players[0];
+        this.handleHostInput();
+      } else {
+        this.host = null;
+      }
     }
     this.lastDisconnect = Date.now();
   }
@@ -116,7 +123,7 @@ class Game {
       return {
         id: player.id,
         name: player.name,
-        host: player.id === this.host.id,
+        host: player.id === this.host?.id,
       };
     });
     for (const player of this.players) {
