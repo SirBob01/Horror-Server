@@ -22,7 +22,7 @@
     "lint": "prettier --write src/* && eslint --fix src",
     "build": "tsc",
     "debug": "nodemon src/index.ts",
-    "start": "tsc && nodemon build/index.js"
+    "start": "ts-node src/index.ts"
   },
   "devDependencies": {
     "@types/cors": "^2.8.12",
