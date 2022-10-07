@@ -62,13 +62,13 @@ class Game {
     player.game = this;
 
     // Attach input listeners
-    player.connection.on('admin', 'input', (state) => {
+    player.connection.on('stateReliable', 'input', (state) => {
       if (player.lastSeq < state.seq && this.running) {
         player.lastSeq = state.seq;
         player.deltaInput.push(...state.input);
       }
     });
-    player.connection.on('state', 'input', (state) => {
+    player.connection.on('stateUnreliable', 'input', (state) => {
       if (player.lastSeq < state.seq && this.running) {
         player.lastSeq = state.seq;
         player.liveInput.push(...state.input);
@@ -100,8 +100,8 @@ class Game {
     // Detach socket listeners
     player.connection.off('admin', 'start');
     player.connection.off('admin', 'stop');
-    player.connection.off('admin', 'input');
-    player.connection.off('state', 'input');
+    player.connection.off('stateReliable', 'input');
+    player.connection.off('stateUnreliable', 'input');
 
     // Change the host
     if (this.host?.id === id) {
@@ -222,7 +222,7 @@ class Game {
       const { connection, world, entity } = player;
       if (world && entity) {
         connection.emit(
-          'state',
+          'stateUnreliable',
           'broadcastState',
           world.getSocketData(entity.id, Date.now())
         );
@@ -248,10 +248,15 @@ class Game {
       if (deltaInput.length > 0 && player.entity) {
         this.players.forEach((other) => {
           if (other !== player && player.entity) {
-            other.connection.emit('admin', 'broadcastInput', player.entity.id, {
-              seq: Date.now(),
-              input: deltaInput,
-            });
+            other.connection.emit(
+              'stateReliable',
+              'broadcastInput',
+              player.entity.id,
+              {
+                seq: Date.now(),
+                input: deltaInput,
+              }
+            );
           }
         });
       }

@@ -31,7 +31,7 @@ class Server {
 
   /**
    * Server instance that coordinates the simulation of multiple concurrent games
-   * 
+   *
    * @param wss WebSocket server
    */
   constructor(wss: WebSocket.Server) {
